@@ -1,0 +1,242 @@
+<!--
+  TheNavbar.vue — Main Site Navigation Bar
+  ───────────────────────────────────────────
+  A sticky, responsive navigation bar with:
+  - Initials / Logo linking to top
+  - Desktop nav links with active section highlight (Scroll Spy)
+  - Reading scroll-progress bar along the bottom edge
+  - Theme toggle (system / light / dark)
+  - Quick link to Admin Login
+  - Mobile hamburger menu drawer with smooth toggle
+  - Accessible keyboard navigation and ARIA attributes
+-->
+
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
+import { usePortfolioStore } from '@/stores/portfolio.js'
+import ThemeToggle from '@/components/layout/ThemeToggle.vue'
+
+const portfolioStore = usePortfolioStore()
+const route = useRoute()
+
+// Track active section for nav link highlight
+const activeSection = ref('hero')
+// Mobile menu open/closed state
+const isMobileMenuOpen = ref(false)
+// Reading scroll progress percentage (0 - 100)
+const scrollProgress = ref(0)
+
+// Navigation items definition
+const navItems = [
+  { label: 'About', href: '#hero' },
+  { label: 'Work', href: '#work' },
+  { label: 'Skills', href: '#skills' },
+  { label: 'Experience', href: '#experience' },
+  { label: 'Contact', href: '#contact' },
+]
+
+/**
+ * Handle scroll events:
+ * 1. Calculate reading scroll percentage
+ * 2. Update active section based on current scroll position
+ */
+function handleScroll() {
+  const scrollTop = window.scrollY || document.documentElement.scrollTop
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight
+  scrollProgress.value = docHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / docHeight) * 100)) : 0
+
+  // Determine which section is currently visible
+  const sections = ['contact', 'experience', 'skills', 'work', 'hero']
+  for (const id of sections) {
+    const el = document.getElementById(id)
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      // Section is active if its top is near or above the navbar line
+      if (rect.top <= 160) {
+        activeSection.value = id
+        break
+      }
+    }
+  }
+}
+
+/**
+ * Close mobile menu when an anchor link is clicked
+ */
+function closeMobileMenu() {
+  isMobileMenuOpen.value = false
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  handleScroll()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+</script>
+
+<template>
+  <header
+    class="sticky top-0 z-40 border-b border-line bg-surface/80 backdrop-blur-md transition-colors"
+  >
+    <!-- Reading scroll progress indicator line -->
+    <div
+      class="absolute top-0 left-0 h-[2px] bg-accent transition-all duration-75 ease-out"
+      :style="{ width: `${scrollProgress}%` }"
+      aria-hidden="true"
+    />
+
+    <nav
+      class="container-main flex items-center justify-between h-16"
+      aria-label="Main Navigation"
+    >
+      <!-- Logo / Name Initials -->
+      <a
+        href="#hero"
+        class="group flex items-center gap-2.5 font-bold text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-control p-1"
+        @click="closeMobileMenu"
+      >
+        <span
+          class="flex items-center justify-center w-9 h-9 rounded-control bg-accent text-on-accent font-mono text-sm tracking-wider font-extrabold shadow-sm transition-transform group-hover:scale-105"
+        >
+          {{ portfolioStore.profile?.initials || 'DEV' }}
+        </span>
+        <span class="font-semibold text-base hidden sm:inline-block tracking-tight text-fg group-hover:text-accent transition-colors">
+          {{ portfolioStore.profile?.name || 'Portfolio' }}
+        </span>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <div class="hidden md:flex items-center gap-1">
+        <a
+          v-for="item in navItems"
+          :key="item.href"
+          :href="item.href"
+          :class="[
+            'px-3.5 py-1.5 rounded-control text-sm font-medium transition-colors relative',
+            activeSection === item.href.substring(1)
+              ? 'text-accent font-semibold'
+              : 'text-muted hover:text-fg hover:bg-surface-2',
+          ]"
+        >
+          {{ item.label }}
+          <!-- Active indicator dot -->
+          <span
+            v-if="activeSection === item.href.substring(1)"
+            class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent"
+            aria-hidden="true"
+          />
+        </a>
+      </div>
+
+      <!-- Right controls: Theme Toggle + Contact CTA + Admin Link + Mobile Menu Toggle -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Theme Switcher -->
+        <ThemeToggle />
+
+        <!-- Quick CTA: Contact -->
+        <a
+          href="#contact"
+          class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-control text-xs font-semibold bg-accent-soft text-accent hover:bg-accent hover:text-on-accent transition-all duration-150"
+        >
+          <span>Hire Me</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+
+        <!-- Admin Portal Icon Link -->
+        <RouterLink
+          to="/admin"
+          title="Admin Panel"
+          class="p-2 rounded-control text-muted hover:text-fg hover:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          aria-label="Admin Dashboard"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2" />
+            <path d="M7 7h.01M7 12h.01M7 17h.01M12 7h5M12 12h5M12 17h5" />
+          </svg>
+        </RouterLink>
+
+        <!-- Mobile Menu Hamburger Button -->
+        <button
+          type="button"
+          class="md:hidden p-2 rounded-control text-muted hover:text-fg hover:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          :aria-expanded="isMobileMenuOpen"
+          aria-controls="mobile-menu"
+          aria-label="Toggle mobile menu"
+          @click="isMobileMenuOpen = !isMobileMenuOpen"
+        >
+          <!-- Hamburger icon when closed -->
+          <svg
+            v-if="!isMobileMenuOpen"
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <!-- Close X icon when open -->
+          <svg
+            v-else
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Mobile Dropdown Menu -->
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-100 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="isMobileMenuOpen"
+        id="mobile-menu"
+        class="md:hidden border-b border-line bg-surface/95 backdrop-blur-md px-4 py-4 space-y-1.5 shadow-overlay"
+      >
+        <a
+          v-for="item in navItems"
+          :key="item.href"
+          :href="item.href"
+          :class="[
+            'block px-3.5 py-2.5 rounded-control text-sm font-medium transition-colors',
+            activeSection === item.href.substring(1)
+              ? 'bg-accent/10 text-accent font-semibold'
+              : 'text-muted hover:text-fg hover:bg-surface-2',
+          ]"
+          @click="closeMobileMenu"
+        >
+          {{ item.label }}
+        </a>
+
+        <div class="pt-2 border-t border-line flex items-center justify-between">
+          <a
+            href="#contact"
+            class="w-full text-center px-4 py-2 rounded-control text-sm font-semibold bg-accent text-on-accent hover:bg-accent-hover transition-colors"
+            @click="closeMobileMenu"
+          >
+            Get In Touch
+          </a>
+        </div>
+      </div>
+    </Transition>
+  </header>
+</template>

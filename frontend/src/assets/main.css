@@ -1,0 +1,373 @@
+/*
+ * main.css — Design System & Tailwind v4 Configuration
+ * ─────────────────────────────────────────────────────
+ * This is the single source of truth for all colors, spacing,
+ * typography, shadows, and animations used across the portfolio.
+ *
+ * HOW IT WORKS:
+ * 1. We import Tailwind CSS which provides utility classes.
+ * 2. We define semantic CSS custom properties (--color-bg, --color-fg, etc.)
+ *    that change based on light/dark mode.
+ * 3. We register those variables with Tailwind v4's @theme so you can use
+ *    utility classes like `bg-bg`, `text-fg`, `border-line`, etc.
+ * 4. Components NEVER use raw hex colors — always use these tokens.
+ */
+
+/* ── Tailwind v4 core import ─────────────────────────────────── */
+@import "tailwindcss";
+
+/* ── Dark mode variant ───────────────────────────────────────── */
+/* Tailwind v4 uses @custom-variant for dark mode.
+   The :where() wrapper keeps specificity flat so overrides stay easy. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Design tokens (Light mode — the default) ────────────────── */
+:root {
+  /* Background layers: page → card → secondary card */
+  --color-bg: #F7F8FA;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F1F4F9;
+
+  /* Text: primary → muted (secondary/labels) */
+  --color-fg: #0F172A;
+  --color-muted: #5B6B7D;
+
+  /* Borders & dividers */
+  --color-line: #E2E8F0;
+
+  /* Accent: primary buttons, links, active states */
+  --color-accent: #5B3FFF;
+  --color-accent-hover: #4B31E0;
+  --color-accent-soft: #EEEAFF;    /* Light tinted background for tags */
+  --color-on-accent: #FFFFFF;       /* Text ON accent backgrounds */
+
+  /* Semantic states */
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+
+  /* Shadows (two levels only — card and overlay/modal) */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-overlay: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+
+  /* Radius: controls (inputs, buttons) and cards */
+  --radius-control: 8px;
+  --radius-card: 16px;
+
+  /* Focus ring: consistent across all interactive elements */
+  --ring-focus: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+
+  /* Selection highlight */
+  --color-selection-bg: var(--color-accent);
+  --color-selection-fg: #FFFFFF;
+
+  /* Navbar height (used for scroll-margin calculations) */
+  --navbar-height: 4rem;
+}
+
+/* ── Design tokens (Dark mode) ───────────────────────────────── */
+.dark {
+  --color-bg: #0B1220;
+  --color-surface: #111A2B;
+  --color-surface-2: #172338;
+
+  --color-fg: #E8EDF5;
+  --color-muted: #9AA9BC;
+
+  --color-line: #22304A;
+
+  --color-accent: #8B7BFF;
+  --color-accent-hover: #A094FF;
+  --color-accent-soft: #1E1A3D;
+  --color-on-accent: #0B1220;
+
+  --color-success: #4ADE80;
+  --color-warning: #FBBF24;
+  --color-danger: #F87171;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-overlay: 0 10px 25px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.2);
+
+  --ring-focus: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+}
+
+/* ── Register tokens with Tailwind v4 @theme ─────────────────── */
+/* This lets us write `bg-bg`, `text-fg`, `border-line`, etc. */
+@theme {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-fg: var(--color-fg);
+  --color-muted: var(--color-muted);
+  --color-line: var(--color-line);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-on-accent: var(--color-on-accent);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+
+  /* Register shadows so `shadow-card` and `shadow-overlay` work */
+  --shadow-card: var(--shadow-card);
+  --shadow-overlay: var(--shadow-overlay);
+
+  /* Register radii so `rounded-control` and `rounded-card` work */
+  --radius-control: var(--radius-control);
+  --radius-card: var(--radius-card);
+}
+
+/* ── Base styles ─────────────────────────────────────────────── */
+/* These apply globally to every page. We use the design tokens
+   so the entire page automatically adapts to light/dark mode. */
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  line-height: 1.6;
+  /* Smooth color transition when toggling themes */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Text selection uses the accent color */
+::selection {
+  background-color: var(--color-selection-bg);
+  color: var(--color-selection-fg);
+}
+
+/* ── Typography scale (fluid, using clamp) ───────────────────── */
+/* clamp(min, preferred, max) so text scales smoothly between
+   320px and 1280px viewports without media query jumps. */
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+/* Fluid font sizes */
+.text-display {
+  font-size: clamp(2.25rem, 5vw + 0.5rem, 4rem);
+}
+
+.text-heading {
+  font-size: clamp(1.75rem, 3vw + 0.5rem, 2.5rem);
+}
+
+.text-subheading {
+  font-size: clamp(1.25rem, 2vw + 0.25rem, 1.5rem);
+}
+
+/* ── Focus ring ──────────────────────────────────────────────── */
+/* Every interactive element gets a visible focus ring for
+   keyboard navigation. This is critical for accessibility. */
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+  border-radius: var(--radius-control);
+}
+
+/* ── Skip-to-content link ────────────────────────────────────── */
+/* Hidden off-screen by default, slides into view when focused.
+   Allows keyboard users to skip past the navbar. */
+
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--color-accent);
+  color: var(--color-on-accent);
+  border-radius: var(--radius-control);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* ── Scroll margin for anchor links ──────────────────────────── */
+/* When you click a nav link like #work, the section scrolls into
+   view but the sticky navbar covers it. scroll-margin-top adds
+   enough space so the heading is visible below the navbar. */
+
+section[id] {
+  scroll-margin-top: calc(var(--navbar-height) + 1.5rem);
+}
+
+/* ── Skeleton shimmer animation ──────────────────────────────── */
+/* Used by SkeletonBlock.vue for loading placeholders */
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 25%,
+    var(--color-surface) 50%,
+    var(--color-surface-2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+  border-radius: var(--radius-control);
+}
+
+/* ── Scroll-reveal animation ─────────────────────────────────── */
+/* Elements start invisible and slide up when they enter the
+   viewport. The useReveal composable adds the "revealed" class. */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(1.5rem);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Staggered entrance for list items ───────────────────────── */
+/* Each child gets a slightly longer delay so they appear one by one */
+
+.stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
+.stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
+.stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
+.stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
+.stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
+.stagger > .reveal:nth-child(6) { transition-delay: 400ms; }
+.stagger > .reveal:nth-child(7) { transition-delay: 480ms; }
+.stagger > .reveal:nth-child(8) { transition-delay: 560ms; }
+
+/* ── Reduced motion ──────────────────────────────────────────── */
+/* If the user has "prefers-reduced-motion: reduce" in their OS
+   settings, we disable ALL animations and transitions for comfort
+   and accessibility. */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* ── Vue route transitions ───────────────────────────────────── */
+/* Fade in/out when navigating between pages */
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+/* ── Toast transitions ───────────────────────────────────────── */
+
+.toast-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.toast-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateY(-1rem) scale(0.95);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(-0.5rem) scale(0.95);
+}
+
+/* ── Modal transitions ───────────────────────────────────────── */
+
+.modal-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.modal-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.modal-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Backdrop fade */
+.backdrop-enter-active,
+.backdrop-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.backdrop-enter-from,
+.backdrop-leave-to {
+  opacity: 0;
+}
+
+/* ── Scroll progress bar ─────────────────────────────────────── */
+/* A thin accent-colored bar at the very top of the page that
+   shows how far the user has scrolled. Width is set via JS. */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--color-accent);
+  z-index: 100;
+  transition: width 0.1s linear;
+}
+
+/* ── Skill bar animation ─────────────────────────────────────── */
+/* The bar starts at 0% width and grows to its target when visible */
+
+.skill-bar-fill {
+  width: 0;
+  transition: width 1s ease-out;
+}
+
+.skill-bar-fill.filled {
+  /* width is set inline via :style binding */
+}
+
+/* ── Container utility ───────────────────────────────────────── */
+/* Centered max-width container with responsive padding */
+
+.container-main {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3vw, 3rem);
+}

@@ -1,0 +1,84 @@
+# ─── Root monorepo .gitignore ──────────────────────────────────────────────────
+# Covers the my-app/ root and both sub-projects (frontend/ & backend/).
+# Each sub-project also has its own .gitignore for finer-grained rules.
+# ────────────────────────────────────────────────────────────────────────────────
+
+# ── OS & system files ────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Editor & IDE directories ─────────────────────────────────────────────────
+.idea/
+.vscode/
+!.vscode/extensions.json
+.zed/
+.nova/
+.cursor/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+# ── Secrets & environment files ──────────────────────────────────────────────
+# Never commit real env files — commit only *.example counterparts
+.env
+.env.*
+!.env.example
+!.env.*.example
+auth.json
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Frontend (Node / Vite / Vue) ─────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/*.local
+frontend/.eslintcache
+frontend/*.tsbuildinfo
+frontend/*.timestamp-*-*.mjs
+frontend/__screenshots__/
+frontend/cypress/videos/
+frontend/cypress/screenshots/
+
+# ── Backend (Laravel / PHP / Composer) ───────────────────────────────────────
+backend/vendor/
+backend/node_modules/
+backend/public/build/
+backend/public/hot
+backend/public/storage
+backend/public/fonts-manifest.dev.json
+backend/storage/*.key
+backend/storage/pail/
+backend/.phpunit.cache/
+backend/.phpunit.result.cache
+backend/_ide_helper.php
+backend/_ide_helper_models.php
+backend/.phpactor.json
+backend/Homestead.json
+backend/Homestead.yaml
+
+# ── Miscellaneous ─────────────────────────────────────────────────────────────
+*.zip
+*.tar.gz
+*.bak
+*.tmp
+*.orig
