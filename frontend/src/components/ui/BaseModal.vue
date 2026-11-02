@@ -143,7 +143,7 @@ watch(
           >
             <h2 class="text-lg font-semibold text-fg">{{ title }}</h2>
             <button
-              class="rounded-control p-1.5 text-muted hover:text-fg hover:bg-surface-2 transition-colors"
+              class="rounded-control p-1.5 text-muted hover-icon focus-ring"
               aria-label="Close dialog"
               @click="close"
             >

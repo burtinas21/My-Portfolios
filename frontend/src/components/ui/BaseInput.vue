@@ -96,11 +96,11 @@ function onInput(event) {
       :class="[
         'w-full rounded-control border bg-surface px-3.5 py-2.5 text-sm text-fg',
         'placeholder:text-muted/60',
-        'transition-colors duration-150',
-        'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-bg',
+        'focus-ring',
         'disabled:opacity-50 disabled:cursor-not-allowed',
+        'transition-colors duration-200',
         /* Red border when there's an error, normal border otherwise */
-        error ? 'border-danger' : 'border-line hover:border-muted',
+        error ? 'border-danger' : 'border-line hover:border-accent/40',
       ]"
       @input="onInput"
     />

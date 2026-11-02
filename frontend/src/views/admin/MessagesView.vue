@@ -134,8 +134,13 @@ function formatDate(dateStr) {
       >
         <!-- Collapsed row (always visible) -->
         <div
-          class="flex items-start gap-4 px-5 py-4 cursor-pointer hover:bg-surface-2 transition-colors"
+          class="flex items-start gap-4 px-5 py-4 cursor-pointer hover-table-row focus-ring"
+          tabindex="0"
+          role="button"
+          :aria-expanded="expandedId === message.id"
           @click="toggleExpand(message)"
+          @keydown.enter="toggleExpand(message)"
+          @keydown.space.prevent="toggleExpand(message)"
         >
           <!-- Unread indicator -->
           <div class="mt-1 shrink-0">
@@ -177,7 +182,7 @@ function formatDate(dateStr) {
           <div class="flex items-center gap-3 pt-2">
             <a
               :href="`mailto:${message.email}?subject=Re: Your message`"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-accent text-on-accent text-xs font-medium hover:bg-accent-hover transition-colors"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-accent text-on-accent text-xs font-medium hover-button-primary focus-ring"
             >
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
               Reply via Email

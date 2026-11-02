@@ -90,7 +90,7 @@ const portfolioStore = usePortfolioStore()
 
           <!-- Experience Card -->
           <div
-            class="rounded-card border border-line bg-surface p-6 shadow-card hover:shadow-overlay transition-all duration-200 space-y-3 group-hover:border-accent/40"
+            class="rounded-card border border-line bg-surface p-6 shadow-card hover-card space-y-3"
           >
             <!-- Period and Organization Header -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-line">

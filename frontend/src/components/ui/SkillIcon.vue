@@ -55,7 +55,7 @@ function initials(name) {
     Padding and border-radius are rem-based so they scale with browser font-size at 200% zoom.
   -->
   <span
-    class="skill-icon-chip"
+    class="skill-icon-chip hover-skill-icon"
     :style="{ width: `${size + 16}px`, height: `${size + 16}px` }"
     :title="name"
   >

@@ -114,7 +114,7 @@ async function handleLogout() {
       </div>
       <!-- Close button (mobile only) -->
       <button
-        class="ml-auto lg:hidden p-1.5 rounded-control text-muted hover:text-fg hover:bg-surface-2 transition-colors"
+        class="ml-auto lg:hidden p-1.5 rounded-control text-muted hover-icon focus-ring"
         aria-label="Close sidebar"
         @click="close"
       >
@@ -130,11 +130,11 @@ async function handleLogout() {
         <li v-for="item in navItems" :key="item.name">
           <RouterLink
             :to="item.to"
-            class="flex items-center gap-3 px-3 py-2.5 rounded-control text-sm font-medium transition-colors"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-control text-sm font-medium hover-table-row focus-ring"
             :class="
               isActive(item)
                 ? 'bg-accent-soft text-accent'
-                : 'text-muted hover:text-fg hover:bg-surface-2'
+                : 'text-muted'
             "
             @click="close"
           >
@@ -160,7 +160,7 @@ async function handleLogout() {
         href="/"
         target="_blank"
         rel="noopener"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-control text-sm font-medium text-muted hover:text-fg hover:bg-surface-2 transition-colors"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-control text-sm font-medium text-muted hover-table-row focus-ring"
       >
         <svg class="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
@@ -169,7 +169,8 @@ async function handleLogout() {
         View Site
       </a>
       <button
-        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-control text-sm font-medium text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-control text-sm font-medium text-muted hover:text-danger hover:bg-danger/10 focus-ring"
+        style="transition: color var(--transition-hover), background-color var(--transition-hover);"
         @click="handleLogout"
       >
         <svg class="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">

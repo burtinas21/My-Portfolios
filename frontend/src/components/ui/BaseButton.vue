@@ -50,13 +50,13 @@ const props = defineProps({
 /* Combine variant and size into Tailwind classes */
 const variantClasses = {
   primary:
-    'bg-accent text-on-accent hover:bg-accent-hover active:scale-[0.97]',
+    'bg-accent text-on-accent hover-button-primary',
   secondary:
-    'border border-line bg-transparent text-fg hover:bg-surface-2 active:scale-[0.97]',
+    'border border-line bg-transparent text-fg hover-button-outlined',
   ghost:
-    'bg-transparent text-muted hover:text-fg hover:bg-surface-2 active:scale-[0.97]',
+    'bg-transparent text-muted hover-button-outlined',
   danger:
-    'bg-danger text-white hover:opacity-90 active:scale-[0.97]',
+    'bg-danger text-white hover-button-primary',
 }
 
 const sizeClasses = {
@@ -73,8 +73,7 @@ const sizeClasses = {
     :class="[
       /* Base styles shared by all buttons */
       'inline-flex items-center justify-center font-medium',
-      'rounded-control transition-all duration-150',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+      'rounded-control focus-ring',
       'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
       /* Variant and size */
       variantClasses[variant],

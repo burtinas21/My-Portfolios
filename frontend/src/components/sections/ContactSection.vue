@@ -156,7 +156,7 @@ function resetForm() {
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         <!-- Left: Direct Details Card -->
         <div class="lg:col-span-5 space-y-6">
-          <div class="rounded-card border border-line bg-surface p-6 sm:p-8 shadow-card space-y-6">
+          <div class="rounded-card border border-line bg-surface p-6 sm:p-8 shadow-card hover-card space-y-6">
             <h3 class="text-lg font-bold text-fg">
               Contact Information
             </h3>
@@ -175,7 +175,7 @@ function resetForm() {
                   <span class="text-xs font-semibold text-muted uppercase tracking-wider block">Email</span>
                   <a
                     :href="`mailto:${portfolioStore.profile.email}`"
-                    class="text-sm font-medium text-fg hover:text-accent transition-colors break-all"
+                    class="text-sm font-medium hover-link break-all"
                   >
                     {{ portfolioStore.profile.email }}
                   </a>
@@ -222,7 +222,7 @@ function resetForm() {
                   :href="social.url"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="px-3 py-1.5 rounded-control text-xs font-medium bg-surface-2 border border-line text-fg hover:text-accent hover:border-accent transition-colors"
+                  class="px-3 py-1.5 rounded-control text-xs font-medium bg-surface-2 border border-line hover-button-outlined focus-ring"
                 >
                   {{ social.name }}
                 </a>
@@ -233,7 +233,7 @@ function resetForm() {
 
         <!-- Right: Interactive Contact Form -->
         <div class="lg:col-span-7">
-          <div class="rounded-card border border-line bg-surface p-6 sm:p-8 shadow-card">
+          <div class="rounded-card border border-line bg-surface p-6 sm:p-8 shadow-card hover-card">
             <!-- Inline Success Card -->
             <div
               v-if="isSubmitted"

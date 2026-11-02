@@ -27,8 +27,7 @@ const modeLabels = {
 
 <template>
   <button
-    class="relative rounded-control p-2 text-muted hover:text-fg hover:bg-surface-2
-           transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
+    class="icon-button"
     :aria-label="`Current: ${modeLabels[mode]}. Click to switch.`"
     :title="modeLabels[mode]"
     @click="cycleMode"
@@ -36,7 +35,7 @@ const modeLabels = {
     <!-- System icon (monitor) -->
     <svg
       v-if="mode === 'system'"
-      class="h-5 w-5"
+      class="w-5 h-5"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -52,7 +51,7 @@ const modeLabels = {
     <!-- Light icon (sun) -->
     <svg
       v-else-if="mode === 'light'"
-      class="h-5 w-5"
+      class="w-5 h-5"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -68,7 +67,7 @@ const modeLabels = {
     <!-- Dark icon (moon) -->
     <svg
       v-else
-      class="h-5 w-5"
+      class="w-5 h-5"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -81,3 +80,27 @@ const modeLabels = {
     </svg>
   </button>
 </template>
+
+<style scoped>
+@reference "@/assets/main.css";
+
+/* Icon button - consistent 44x44px size, 20px icons, same hover/focus styles */
+.icon-button {
+  @apply flex items-center justify-center
+         text-muted
+         rounded-control
+         focus-ring;
+  width: 2.75rem;  /* 44px */
+  height: 2.75rem; /* 44px */
+  display: grid;
+  place-items: center;
+  transition: color var(--transition-hover),
+              background-color var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .icon-button:hover {
+    @apply text-accent bg-accent-soft;
+  }
+}
+</style>

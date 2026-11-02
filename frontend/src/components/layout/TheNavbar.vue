@@ -15,9 +15,11 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { usePortfolioStore } from '@/stores/portfolio.js'
+import { useAuthStore } from '@/stores/auth.js'
 import ThemeToggle from '@/components/layout/ThemeToggle.vue'
 
 const portfolioStore = usePortfolioStore()
+const authStore = useAuthStore()
 const route = useRoute()
 
 // Track active section for nav link highlight
@@ -96,15 +98,15 @@ onUnmounted(() => {
       <!-- Logo / Name Initials -->
       <a
         href="#hero"
-        class="group flex items-center gap-2.5 font-bold text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-control p-1"
+        class="group flex items-center gap-2.5 font-bold text-fg focus-ring rounded-control p-1"
         @click="closeMobileMenu"
       >
         <span
-          class="flex items-center justify-center w-9 h-9 rounded-control bg-accent text-on-accent font-mono text-sm tracking-wider font-extrabold shadow-sm transition-transform group-hover:scale-105"
+          class="flex items-center justify-center w-9 h-9 rounded-control bg-accent text-on-accent font-mono text-sm tracking-wider font-extrabold shadow-sm hover-skill-icon"
         >
           {{ portfolioStore.profile?.initials || 'DEV' }}
         </span>
-        <span class="font-semibold text-base hidden sm:inline-block tracking-tight text-fg group-hover:text-accent transition-colors">
+        <span class="font-semibold text-base hidden sm:inline-block tracking-tight hover-nav-link">
           {{ portfolioStore.profile?.name || 'Portfolio' }}
         </span>
       </a>
@@ -116,10 +118,10 @@ onUnmounted(() => {
           :key="item.href"
           :href="item.href"
           :class="[
-            'px-3.5 py-1.5 rounded-control text-sm font-medium transition-colors relative',
+            'px-3.5 py-1.5 rounded-control text-sm font-medium hover-nav-link focus-ring relative',
             activeSection === item.href.substring(1)
               ? 'text-accent font-semibold'
-              : 'text-muted hover:text-fg hover:bg-surface-2',
+              : 'text-muted',
           ]"
         >
           {{ item.label }}
@@ -134,13 +136,10 @@ onUnmounted(() => {
 
       <!-- Right controls: Theme Toggle + Contact CTA + Admin Link + Mobile Menu Toggle -->
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Theme Switcher -->
-        <ThemeToggle />
-
-        <!-- Quick CTA: Contact -->
+        <!-- Quick CTA: Contact (hidden on small screens) -->
         <a
           href="#contact"
-          class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-control text-xs font-semibold bg-accent-soft text-accent hover:bg-accent hover:text-on-accent transition-all duration-150"
+          class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-control text-xs font-semibold bg-accent-soft text-accent hover-button-outlined focus-ring"
         >
           <span>Hire Me</span>
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -148,53 +147,60 @@ onUnmounted(() => {
           </svg>
         </a>
 
-        <!-- Admin Portal Icon Link -->
-        <RouterLink
-          to="/admin"
-          title="Admin Panel"
-          class="p-2 rounded-control text-muted hover:text-fg hover:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          aria-label="Admin Dashboard"
-        >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="18" x="3" y="3" rx="2" />
-            <path d="M7 7h.01M7 12h.01M7 17h.01M12 7h5M12 12h5M12 17h5" />
-          </svg>
-        </RouterLink>
+        <!-- Icon buttons group - all equal size (44x44px), same icon size (20px), consistent gap -->
+        <div class="flex items-center" :class="authStore.isAuthenticated ? 'gap-2 sm:gap-3' : 'gap-2 sm:gap-3'">
+          <!-- Theme Switcher -->
+          <ThemeToggle />
 
-        <!-- Mobile Menu Hamburger Button -->
-        <button
-          type="button"
-          class="md:hidden p-2 rounded-control text-muted hover:text-fg hover:bg-surface-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          :aria-expanded="isMobileMenuOpen"
-          aria-controls="mobile-menu"
-          aria-label="Toggle mobile menu"
-          @click="isMobileMenuOpen = !isMobileMenuOpen"
-        >
-          <!-- Hamburger icon when closed -->
-          <svg
-            v-if="!isMobileMenuOpen"
-            class="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
+          <!-- Admin Portal Icon Link (only shown when authenticated) -->
+          <RouterLink
+            v-if="authStore.isAuthenticated"
+            to="/admin"
+            title="Admin Panel"
+            class="icon-button"
+            aria-label="Admin Dashboard"
           >
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          <!-- Close X icon when open -->
-          <svg
-            v-else
-            class="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="M7 7h.01M7 12h.01M7 17h.01M12 7h5M12 12h5M12 17h5" />
+            </svg>
+          </RouterLink>
+
+          <!-- Mobile Menu Hamburger Button -->
+          <button
+            type="button"
+            class="icon-button md:hidden"
+            :aria-expanded="isMobileMenuOpen"
+            aria-controls="mobile-menu"
+            aria-label="Toggle mobile menu"
+            @click="isMobileMenuOpen = !isMobileMenuOpen"
           >
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
-        </button>
+            <!-- Hamburger icon when closed -->
+            <svg
+              v-if="!isMobileMenuOpen"
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <!-- Close X icon when open -->
+            <svg
+              v-else
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
     </nav>
 
@@ -217,10 +223,10 @@ onUnmounted(() => {
           :key="item.href"
           :href="item.href"
           :class="[
-            'block px-3.5 py-2.5 rounded-control text-sm font-medium transition-colors',
+            'block px-3.5 py-2.5 rounded-control text-sm font-medium hover-nav-link focus-ring',
             activeSection === item.href.substring(1)
               ? 'bg-accent/10 text-accent font-semibold'
-              : 'text-muted hover:text-fg hover:bg-surface-2',
+              : 'text-muted',
           ]"
           @click="closeMobileMenu"
         >
@@ -230,7 +236,7 @@ onUnmounted(() => {
         <div class="pt-2 border-t border-line flex items-center justify-between">
           <a
             href="#contact"
-            class="w-full text-center px-4 py-2 rounded-control text-sm font-semibold bg-accent text-on-accent hover:bg-accent-hover transition-colors"
+            class="w-full text-center px-4 py-2 rounded-control text-sm font-semibold bg-accent text-on-accent hover-button-primary focus-ring"
             @click="closeMobileMenu"
           >
             Get In Touch
@@ -240,3 +246,28 @@ onUnmounted(() => {
     </Transition>
   </header>
 </template>
+
+<style scoped>
+@reference "@/assets/main.css";
+
+/* Icon button - consistent 44x44px size, 20px icons, same hover/focus styles */
+.icon-button {
+  @apply flex items-center justify-center
+         text-muted
+         rounded-control
+         focus-ring;
+  width: 2.75rem;  /* 44px */
+  height: 2.75rem; /* 44px */
+  display: grid;
+  place-items: center;
+  transition: color var(--transition-hover),
+              border-color var(--transition-hover),
+              background-color var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .icon-button:hover {
+    @apply text-accent bg-accent-soft;
+  }
+}
+</style>

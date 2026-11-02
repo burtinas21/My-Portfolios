@@ -2,16 +2,22 @@
   SkillsSection.vue — Technical Skills & Expertise
   ───────────────────────────────────────────────────
   Displays technical competencies grouped by category (Frontend, Backend, etc.)
-  with:
-  - Category headings
-  - Responsive tile grid per category (2 cols mobile → 3 sm → 5 lg)
-  - SkillIcon chip on top, skill name below, level as tooltip only
-  - Staggered scroll-reveal animation (respects prefers-reduced-motion)
+  with infinite horizontal marquee animations:
+  - Category headings with icons
+  - Continuous horizontal scroll per category (seamless loop)
+  - Alternating directions (row 1 left, row 2 right, etc.)
+  - Soft fade edges using CSS mask
+  - Pause on hover/focus for accessibility
+  - Play/Pause button for user control
+  - Respects prefers-reduced-motion (shows static grid instead)
   - Loading skeleton state, error state with retry, and empty state
+  
+  Technical note: Each marquee track consists of two identical halves.
+  Each half is measured and repeated until wider than the container to prevent gaps.
 -->
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import SkeletonBlock from '@/components/ui/SkeletonBlock.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -22,35 +28,82 @@ const portfolioStore = usePortfolioStore()
 
 // Root section reference for intersection observer
 const sectionRef = ref(null)
-// Drive the stagger reveal — true once the section enters viewport
+// Track if section is visible (start animation only when in viewport)
 const isVisible = ref(false)
+// User control: pause/play all marquees
+const isPaused = ref(false)
+// Check if user prefers reduced motion (reactive to system setting changes)
+const prefersReducedMotion = ref(false)
+// Store repeat counts per category (reactive to window resize)
+const categoryRepeatCounts = ref({})
+// Store animation durations per category (scaled by width)
+const categoryDurations = ref({})
+// Refs to marquee containers for measurement
+const marqueeContainerRefs = ref({})
 
 let observer = null
+let resizeObserver = null
 
 onMounted(() => {
+  // Check prefers-reduced-motion media query
+  const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+  prefersReducedMotion.value = mediaQuery.matches
+
+  // Listen for changes to the media query (e.g., user changes system setting)
+  const handleMotionChange = (e) => { prefersReducedMotion.value = e.matches }
+  mediaQuery.addEventListener('change', handleMotionChange)
+
+  // Set up intersection observer to start/stop animation when in/out of view
   if ('IntersectionObserver' in window && sectionRef.value) {
     observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          isVisible.value = true
-          observer?.disconnect()
-        }
+        isVisible.value = entries[0].isIntersecting
       },
       { threshold: 0.1 },
     )
     observer.observe(sectionRef.value)
   } else {
-    // Fallback for environments without IntersectionObserver
+    // Fallback: assume always visible
     isVisible.value = true
   }
+
+  // Set up ResizeObserver to recalculate on container size changes
+  if ('ResizeObserver' in window) {
+    resizeObserver = new ResizeObserver(() => {
+      recalculateAllMarquees()
+    })
+    // Observe the main container
+    const container = sectionRef.value?.querySelector('.container-main')
+    if (container) {
+      resizeObserver.observe(container)
+    }
+  }
+
+  // Initial calculation
+  nextTick(() => {
+    recalculateAllMarquees()
+  })
+
+  // Clean up media query listener
+  onUnmounted(() => {
+    mediaQuery.removeEventListener('change', handleMotionChange)
+  })
 })
 
 onUnmounted(() => {
   observer?.disconnect()
+  resizeObserver?.disconnect()
 })
 
+// Recalculate when data changes
+watch(() => portfolioStore.skills, () => {
+  nextTick(() => {
+    recalculateAllMarquees()
+  })
+}, { deep: true })
+
 /**
- * Return an SVG icon key for the category card header (same helper as before).
+ * Return an SVG icon key for the category card header.
  */
 function getCategoryIcon(category) {
   const normalized = (category || '').toLowerCase()
@@ -61,13 +114,110 @@ function getCategoryIcon(category) {
 }
 
 /**
- * Compute per-tile transition-delay so tiles stagger in one-by-one.
- * Capped at 500 ms so late tiles don't feel sluggish.
- * @param {number} index — zero-based index within the category tile list
+ * Base animation speed in pixels per second (target velocity).
  */
-function tileDelay(index) {
-  return `${Math.min(index * 60, 500)}ms`
+const BASE_SPEED_PX_PER_SEC = 40
+
+/**
+ * Determine animation direction: even rows go left, odd rows go right.
+ */
+function getAnimationDirection(index) {
+  return index % 2 === 0 ? 'left' : 'right'
 }
+
+/**
+ * Recalculate repeat counts and durations for all marquee rows.
+ * Measures container width and skill item width to determine optimal repetitions.
+ */
+function recalculateAllMarquees() {
+  categoriesArray.value.forEach(categoryData => {
+    const containerEl = marqueeContainerRefs.value[categoryData.name]
+    if (!containerEl) return
+
+    const containerWidth = containerEl.offsetWidth
+    if (!containerWidth) return
+
+    // Create a temporary wrapper to measure one full copy of skills
+    const tempWrapper = document.createElement('div')
+    tempWrapper.style.position = 'absolute'
+    tempWrapper.style.visibility = 'hidden'
+    tempWrapper.style.display = 'flex'
+    tempWrapper.style.gap = '0.75rem' // Match .marquee-track gap
+    
+    // Create skill pills to measure
+    categoryData.skills.forEach(skill => {
+      const pill = document.createElement('div')
+      pill.style.minWidth = '8rem'
+      pill.style.maxWidth = '12rem'
+      pill.style.padding = '0.5rem 0.75rem'
+      pill.style.border = '1px solid transparent'
+      pill.textContent = skill.name
+      tempWrapper.appendChild(pill)
+    })
+
+    containerEl.appendChild(tempWrapper)
+    const copyWidth = tempWrapper.offsetWidth
+    containerEl.removeChild(tempWrapper)
+
+    // Calculate how many repetitions needed for one half to exceed container width
+    // Add +1 to ensure no gaps even with rounding
+    const repeatsNeeded = Math.max(1, Math.ceil(containerWidth / copyWidth) + 1)
+    
+    // Store repeat count
+    categoryRepeatCounts.value[categoryData.name] = repeatsNeeded
+
+    // Calculate animation duration based on half width
+    // Each half width = repeatsNeeded * copyWidth
+    const halfWidth = repeatsNeeded * copyWidth
+    const duration = halfWidth / BASE_SPEED_PX_PER_SEC
+    
+    categoryDurations.value[categoryData.name] = duration
+  })
+}
+
+/**
+ * Get repeated skills array for one half of the marquee track.
+ * Uses measured repeat count, fallback to at least 12 items.
+ */
+function getRepeatedSkills(categoryName, skills) {
+  const repeats = categoryRepeatCounts.value[categoryName] || Math.max(1, Math.ceil(12 / skills.length))
+  return Array(repeats).fill(skills).flat()
+}
+
+/**
+ * Get animation duration for a category (calculated based on width).
+ * Fallback to 35s if not yet calculated.
+ */
+function getAnimationDuration(categoryName) {
+  return categoryDurations.value[categoryName] || 35
+}
+
+/**
+ * Set ref for marquee container (used for measurements).
+ */
+function setMarqueeRef(el, categoryName) {
+  if (el) {
+    marqueeContainerRefs.value[categoryName] = el
+  }
+}
+
+/**
+ * Toggle pause/play for all marquees.
+ */
+function togglePause() {
+  isPaused.value = !isPaused.value
+}
+
+/**
+ * Compute categories array with indices for iteration.
+ */
+const categoriesArray = computed(() => {
+  return Object.keys(portfolioStore.skills).map((category, index) => ({
+    name: category,
+    skills: portfolioStore.skills[category],
+    index,
+  }))
+})
 </script>
 
 <template>
@@ -79,16 +229,40 @@ function tileDelay(index) {
   >
     <div class="container-main space-y-12">
       <!-- Section Header -->
-      <div class="space-y-2 max-w-xl">
-        <span class="inline-block text-xs font-mono font-semibold uppercase tracking-wider text-accent">
-          Expertise
-        </span>
-        <h2 id="skills-title" class="text-heading font-bold tracking-tight text-fg">
-          Skills &amp; Technologies
-        </h2>
-        <p class="text-sm sm:text-base text-muted">
-          Tools, frameworks, and programming languages applied across enterprise and personal projects.
-        </p>
+      <div class="flex items-center justify-between gap-4 max-w-full">
+        <div class="space-y-2 flex-1 max-w-xl">
+          <span class="inline-block text-xs font-mono font-semibold uppercase tracking-wider text-accent">
+            Expertise
+          </span>
+          <h2 id="skills-title" class="text-heading font-bold tracking-tight text-fg">
+            Skills &amp; Technologies
+          </h2>
+          <p class="text-sm sm:text-base text-muted">
+            Tools, frameworks, and programming languages applied across enterprise and personal projects.
+          </p>
+        </div>
+
+        <!-- Pause/Play Button (only shown when marquee is active) -->
+        <button
+          v-if="!prefersReducedMotion && portfolioStore.skillCategories.length > 0"
+          type="button"
+          class="pause-play-button"
+          :class="{ 'is-paused': isPaused }"
+          :aria-pressed="isPaused"
+          :aria-label="isPaused ? 'Play skills animation' : 'Pause skills animation'"
+          :title="isPaused ? 'Play skills animation' : 'Pause skills animation'"
+          @click="togglePause"
+        >
+          <!-- Pause icon -->
+          <svg v-if="!isPaused" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="6" y="4" width="4" height="16" rx="1" />
+            <rect x="14" y="4" width="4" height="16" rx="1" />
+          </svg>
+          <!-- Play icon -->
+          <svg v-else class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
+          </svg>
+        </button>
       </div>
 
       <!-- Loading Skeleton State -->
@@ -98,13 +272,7 @@ function tileDelay(index) {
       >
         <div v-for="i in 2" :key="i" class="space-y-3">
           <SkeletonBlock height="1.25rem" width="6rem" />
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div
-              v-for="j in 5"
-              :key="j"
-              class="skeleton rounded-card h-20"
-            />
-          </div>
+          <div class="skeleton rounded-card h-20" />
         </div>
       </div>
 
@@ -124,29 +292,29 @@ function tileDelay(index) {
         />
       </div>
 
-      <!-- Categories -->
+      <!-- Categories (Marquee or Static Grid based on motion preference) -->
       <div v-else class="space-y-10">
         <div
-          v-for="(skillsList, category) in portfolioStore.skills"
-          :key="category"
+          v-for="categoryData in categoriesArray"
+          :key="categoryData.name"
         >
-          <!-- Category heading row with the same icon chip as before -->
+          <!-- Category heading row -->
           <div class="flex items-center gap-3 mb-4">
             <div class="w-8 h-8 rounded-control bg-accent-soft text-accent flex items-center justify-center shrink-0">
               <!-- Backend icon -->
-              <svg v-if="getCategoryIcon(category) === 'backend'" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg v-if="getCategoryIcon(categoryData.name) === 'backend'" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect width="20" height="8" x="2" y="2" rx="2" />
                 <rect width="20" height="8" x="2" y="14" rx="2" />
                 <line x1="6" x2="6.01" y1="6" y2="6" />
                 <line x1="6" x2="6.01" y1="18" y2="18" />
               </svg>
               <!-- Frontend icon -->
-              <svg v-else-if="getCategoryIcon(category) === 'frontend'" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg v-else-if="getCategoryIcon(categoryData.name) === 'frontend'" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="16 18 22 12 16 6" />
                 <polyline points="8 6 2 12 8 18" />
               </svg>
               <!-- Database icon -->
-              <svg v-else-if="getCategoryIcon(category) === 'database'" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg v-else-if="getCategoryIcon(categoryData.name) === 'database'" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <ellipse cx="12" cy="5" rx="9" ry="3" />
                 <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
                 <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
@@ -157,22 +325,75 @@ function tileDelay(index) {
               </svg>
             </div>
             <div>
-              <h3 class="font-bold text-base text-fg">{{ category }}</h3>
-              <span class="text-xs text-muted">{{ skillsList.length }} technologies</span>
+              <h3 class="font-bold text-base text-fg">{{ categoryData.name }}</h3>
+              <span class="text-xs text-muted">{{ categoryData.skills.length }} technologies</span>
             </div>
           </div>
 
-          <!--
-            Tile grid — 2 cols on phones, 3 on sm, 5 on lg.
-            Using ul/li for list semantics (accessibility).
-          -->
-          <ul class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 list-none p-0">
+          <!-- Marquee Container (visible when motion is enabled) -->
+          <div
+            v-if="!prefersReducedMotion"
+            :ref="(el) => setMarqueeRef(el, categoryData.name)"
+            class="marquee-container"
+            :class="{
+              'marquee-paused': isPaused || !isVisible,
+            }"
+          >
+            <!-- Accessible list for screen readers (only one copy, reads each skill once) -->
+            <ul class="sr-only">
+              <li v-for="skill in categoryData.skills" :key="skill.id">
+                {{ skill.name }}
+              </li>
+            </ul>
+
+            <!-- Visual marquee track (two identical halves for seamless loop) -->
+            <div
+              class="marquee-track"
+              :class="`marquee-${getAnimationDirection(categoryData.index)}`"
+              :style="{
+                '--animation-duration': `${getAnimationDuration(categoryData.name)}s`,
+              }"
+            >
+              <!-- First half -->
+              <div
+                v-for="(skill, idx) in getRepeatedSkills(categoryData.name, categoryData.skills)"
+                :key="`${skill.id}-first-${idx}`"
+                class="skill-pill"
+                tabindex="0"
+                :title="`${skill.name} — ${skill.level}% proficiency`"
+              >
+                <SkillIcon :icon="skill.icon || ''" :name="skill.name" :size="24" />
+                <span class="text-xs font-medium text-fg whitespace-nowrap">
+                  {{ skill.name }}
+                </span>
+              </div>
+
+              <!-- Second half (exact duplicate, hidden from screen readers) -->
+              <div
+                v-for="(skill, idx) in getRepeatedSkills(categoryData.name, categoryData.skills)"
+                :key="`${skill.id}-second-${idx}`"
+                class="skill-pill"
+                tabindex="-1"
+                aria-hidden="true"
+                :title="`${skill.name} — ${skill.level}% proficiency`"
+              >
+                <SkillIcon :icon="skill.icon || ''" :name="skill.name" :size="24" />
+                <span class="text-xs font-medium text-fg whitespace-nowrap">
+                  {{ skill.name }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Static Grid (visible when reduced motion is preferred) -->
+          <ul
+            v-else
+            class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 list-none p-0"
+          >
             <li
-              v-for="(skill, idx) in skillsList"
+              v-for="skill in categoryData.skills"
               :key="skill.id"
-              class="skill-tile"
-              :class="{ 'skill-tile--visible': isVisible }"
-              :style="{ transitionDelay: tileDelay(idx) }"
+              class="skill-tile-static"
               :title="`${skill.name} — ${skill.level}% proficiency`"
             >
               <SkillIcon :icon="skill.icon || ''" :name="skill.name" :size="32" />
@@ -190,47 +411,206 @@ function tileDelay(index) {
 <style scoped>
 @reference "@/assets/main.css";
 
-/*
- * Individual skill tile: icon on top, name below, subtle hover lift.
- * Starts invisible (opacity 0, slight upward offset) and reveals on .skill-tile--visible.
- * prefers-reduced-motion: transition is instant so no movement happens.
- */
-.skill-tile {
+/* ─────────────────────────────────────────────────────────────────────────────────────
+   Pause/Play Button - Small (36px), subtle, icon-only control
+   ───────────────────────────────────────────────────────────────────────────────────── */
+
+.pause-play-button {
+  @apply flex items-center justify-center
+         shrink-0
+         text-muted;
+  /* Fixed 36px size, icon-only */
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-line);
+  background-color: transparent;
+  transition: color var(--transition-hover),
+              border-color var(--transition-hover),
+              background-color var(--transition-hover);
+  cursor: pointer;
+}
+
+/* Hover state - accent color */
+@media (hover: hover) {
+  .pause-play-button:hover {
+    @apply text-accent border-accent;
+    background-color: var(--color-accent-soft);
+  }
+}
+
+/* Focus visible (keyboard only, not mouse) */
+.pause-play-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Remove focus outline after mouse click */
+.pause-play-button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Marquee Container (overflow hidden + fade edges)
+   ───────────────────────────────────────────────────────────── */
+
+.marquee-container {
+  position: relative;
+  overflow: hidden;
+  /* Soft fade on left and right edges using mask */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 5%,
+    black 95%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 5%,
+    black 95%,
+    transparent 100%
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Marquee Track (the scrolling container)
+   ───────────────────────────────────────────────────────────── */
+
+.marquee-track {
+  display: flex;
+  gap: 0.75rem;
+  /* will-change applied only during animation for performance */
+  will-change: transform;
+}
+
+/* Animation runs only when section is visible and not paused */
+.marquee-container:not(.marquee-paused) .marquee-track {
+  animation: marquee-scroll var(--animation-duration) linear infinite;
+}
+
+/* Stop animation when paused or out of view (battery saving) */
+.marquee-paused .marquee-track {
+  animation-play-state: paused;
+}
+
+/* Pause on hover or when any item inside has focus */
+.marquee-container:hover .marquee-track,
+.marquee-container:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Marquee Animations (left and right)
+   ───────────────────────────────────────────────────────────── */
+
+/* Scroll to the left (items move leftward) */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Right-scrolling rows use reversed keyframes */
+.marquee-right {
+  flex-direction: row-reverse;
+}
+
+.marquee-container:not(.marquee-paused) .marquee-right {
+  animation-name: marquee-scroll-reverse;
+}
+
+@keyframes marquee-scroll-reverse {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Skill Pill (compact card with icon + name)
+   ───────────────────────────────────────────────────────────── */
+
+.skill-pill {
+  @apply flex items-center gap-2
+         px-3 py-2 rounded-control
+         border border-line bg-surface
+         cursor-default select-none
+         shrink-0;
+  /* Fixed width ensures consistent sizing across all items */
+  min-width: 8rem;
+  max-width: 12rem;
+}
+
+.skill-pill:focus-visible {
+  @apply outline-none;
+  box-shadow: var(--ring-focus);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Static Grid (for prefers-reduced-motion)
+   ───────────────────────────────────────────────────────────── */
+
+.skill-tile-static {
   @apply flex flex-col items-center justify-center
          p-3 rounded-card
          border border-line bg-surface
-         cursor-default select-none
-         transition-all duration-300 ease-out;
-
-  /* Scroll-reveal start state */
-  opacity: 0;
-  transform: translateY(0.75rem);
+         cursor-default select-none;
+  /* Apply stronger hover-card effect (matches main.css hover-card utility) */
+  transition: transform var(--transition-hover),
+              border-color var(--transition-hover),
+              box-shadow var(--transition-hover);
 }
 
-.skill-tile--visible {
-  opacity: 1;
-  transform: translateY(0);
+@media (hover: hover) {
+  .skill-tile-static:hover,
+  .skill-tile-static:focus-visible {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark .skill-tile-static:hover,
+  .dark .skill-tile-static:focus-visible {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
 }
 
-/* Soft hover lift */
-.skill-tile:hover {
-  @apply border-accent/40 shadow-card;
-  transform: translateY(-2px);
-}
-
-/* Keep hover lift disabled while not yet revealed */
-.skill-tile:not(.skill-tile--visible):hover {
-  transform: translateY(0.75rem);
-}
+/* ─────────────────────────────────────────────────────────────────────────────────────
+   Reduced Motion (disable ALL marquee animations and hover movement)
+   ───────────────────────────────────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
-  .skill-tile {
-    opacity: 1;
-    transform: none;
-    transition: none;
+  .marquee-track {
+    animation: none !important;
+    will-change: auto;
   }
-  .skill-tile:hover {
+  
+  .skill-tile-static:hover,
+  .skill-tile-static:focus-visible {
     transform: none;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Screen Reader Only Utility
+   ───────────────────────────────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 </style>

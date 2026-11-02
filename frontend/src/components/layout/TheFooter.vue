@@ -85,7 +85,7 @@ function scrollToTop() {
             <li v-for="link in navLinks" :key="link.href">
               <a
                 :href="link.href"
-                class="text-muted hover:text-accent transition-colors"
+                class="hover-link"
               >
                 {{ link.label }}
               </a>
@@ -111,7 +111,7 @@ function scrollToTop() {
               target="_blank"
               rel="noopener noreferrer"
               :title="social.name"
-              class="w-9 h-9 rounded-control flex items-center justify-center border border-line bg-surface-2 text-muted hover:text-accent hover:border-accent transition-all duration-150 hover:-translate-y-0.5"
+              class="w-9 h-9 rounded-control flex items-center justify-center border border-line bg-surface-2 text-muted hover-icon focus-ring"
             >
               <!-- GitHub Icon -->
               <svg v-if="getSocialIcon(social.name) === 'github'" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -141,14 +141,14 @@ function scrollToTop() {
         <div class="flex items-center gap-3">
           <span>&copy; {{ currentYear }} {{ portfolioStore.profile?.name || 'Portfolio' }}. All rights reserved.</span>
           <span class="text-line">&bull;</span>
-          <RouterLink to="/admin" class="hover:text-accent transition-colors">
+          <RouterLink to="/admin" class="hover-link focus-ring">
             Admin Area
           </RouterLink>
         </div>
 
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 text-muted hover:text-accent transition-colors p-1"
+          class="inline-flex items-center gap-1.5 hover-link focus-ring p-1"
           @click="scrollToTop"
         >
           <span>Back to top</span>

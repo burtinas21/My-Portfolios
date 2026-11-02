@@ -32,17 +32,17 @@ const remainingCount = computed(() => Math.max(0, (props.project.stack || []).le
 
 <template>
   <article
-    class="group flex flex-col rounded-card border border-line bg-surface shadow-card hover:shadow-overlay transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+    class="group flex flex-col rounded-card border border-line bg-surface shadow-card hover-card overflow-hidden"
   >
     <!-- Card Media / Preview Header -->
-    <div class="relative h-48 w-full bg-surface-2 overflow-hidden border-b border-line flex items-center justify-center">
+    <div class="relative h-48 w-full bg-surface-2 overflow-hidden border-b border-line flex items-center justify-center hover-image-overlay">
       <!-- Real uploaded project image -->
       <img
         v-if="fullImageUrl"
         :src="fullImageUrl"
         :alt="project.title"
         loading="lazy"
-        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        class="w-full h-full object-cover hover-image"
       />
 
       <!-- Tech Fallback Banner when image is null -->
@@ -108,7 +108,7 @@ const remainingCount = computed(() => Math.max(0, (props.project.stack || []).le
       <div class="pt-3 border-t border-line flex items-center justify-between gap-2">
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-hover transition-colors py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-control"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-hover transition-colors py-1 focus-ring rounded-control"
           @click="emit('view-details', project)"
         >
           <span>View Details</span>
@@ -123,7 +123,7 @@ const remainingCount = computed(() => Math.max(0, (props.project.stack || []).le
           target="_blank"
           rel="noopener noreferrer"
           title="Open live project"
-          class="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors px-2 py-1 rounded-control hover:bg-surface-2"
+          class="inline-flex items-center gap-1 text-xs text-muted hover-link rounded-control px-2 py-1"
         >
           <span>Live Demo</span>
           <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

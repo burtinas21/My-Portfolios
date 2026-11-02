@@ -371,3 +371,284 @@ section[id] {
   margin-inline: auto;
   padding-inline: clamp(1rem, 3vw, 3rem);
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   HOVER & FOCUS INTERACTION SYSTEM
+   ──────────────────────────────────────────────────────────────────────
+   Consistent, elegant hover and focus effects applied across the entire
+   application. All utilities use design tokens, work in light/dark theme,
+   and respect prefers-reduced-motion.
+
+   SHARED CONSTANTS:
+   - Duration: 200ms
+   - Easing: ease-out
+   - Animations: only transform, opacity, color, background, border, shadow
+   - Focus: always visible ring (2px accent outline with offset)
+   - Touch: effects use @media (hover: hover) so they don't apply on touch
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Shared transition timing for all interactive elements */
+:root {
+  --transition-hover: 200ms ease-out;
+}
+
+/* ── hover-card ──────────────────────────────────────────────────
+   Card hover effect: strong lift + border highlight + shadow upgrade.
+   Used on: project cards, experience items, contact info cards, admin cards.
+   Effect: 4px lift, accent border at 60% opacity, noticeable shadow growth.
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-card {
+  transition: transform var(--transition-hover),
+              border-color var(--transition-hover),
+              box-shadow var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .hover-card:hover,
+  .hover-card:focus-within {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark .hover-card:hover,
+  .dark .hover-card:focus-within {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-card:hover,
+  .hover-card:focus-within {
+    transform: none;
+  }
+}
+
+/* ── hover-button-primary ────────────────────────────────────────
+   Primary (filled) button hover: darker/lighter background + lift.
+   Used on: BaseButton primary variant, admin save buttons.
+   Effect: 2px lift, darker/lighter background, noticeable shadow.
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-button-primary {
+  transition: transform var(--transition-hover),
+              background-color var(--transition-hover),
+              box-shadow var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .hover-button-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background-color: var(--color-accent-hover);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .hover-button-primary:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-button-primary:hover:not(:disabled),
+  .hover-button-primary:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ── hover-button-outlined ───────────────────────────────────────
+   Outlined/secondary button hover: border and text turn accent.
+   Used on: BaseButton secondary/ghost variants, outlined action buttons.
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-button-outlined {
+  transition: border-color var(--transition-hover),
+              color var(--transition-hover),
+              background-color var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .hover-button-outlined:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+
+/* ── hover-link ──────────────────────────────────────────────────
+   Text link hover: animated underline that grows from left + accent color.
+   Used on: footer links, inline text links, breadcrumb links.
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-link {
+  position: relative;
+  text-decoration: none;
+  color: var(--color-fg);
+  transition: color var(--transition-hover);
+}
+
+.hover-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .hover-link:hover,
+  .hover-link:focus-visible {
+    color: var(--color-accent);
+  }
+
+  .hover-link:hover::after,
+  .hover-link:focus-visible::after {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-link::after {
+    transition: none;
+  }
+}
+
+/* ── hover-icon ──────────────────────────────────────────────────
+   Icon button/link hover: border + text turn accent + subtle background.
+   Used on: social icon links, icon-only action buttons, nav icons.
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-icon {
+  transition: color var(--transition-hover),
+              border-color var(--transition-hover),
+              background-color var(--transition-hover);
+  /* Ensure minimum 44px touch target for accessibility */
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+@media (hover: hover) {
+  .hover-icon:hover,
+  .hover-icon:focus-visible {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background-color: var(--color-accent-soft);
+  }
+}
+
+/* ── hover-image ─────────────────────────────────────────────────
+   Image zoom effect: scale 1.05 inside overflow-hidden container.
+   Used on: project card images, portfolio thumbnails.
+   Note: Apply to the <img> element, parent must have overflow-hidden.
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-image {
+  transition: transform var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .hover-image:hover,
+  .hover-image:focus-within .hover-image {
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-image:hover,
+  .hover-image:focus-within .hover-image {
+    transform: none;
+  }
+}
+
+/* ── hover-image-overlay ─────────────────────────────────────────
+   Dark gradient overlay for image hover (appears with hover-image).
+   Used on: project card image containers.
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-image-overlay {
+  position: relative;
+}
+
+.hover-image-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 100%);
+  opacity: 0;
+  transition: opacity var(--transition-hover);
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .hover-image-overlay:hover::after,
+  .hover-image-overlay:focus-within::after {
+    opacity: 1;
+  }
+}
+
+/* ── hover-skill-icon ────────────────────────────────────────────
+   Skill icon scale effect: subtle 1.05 scale on hover/focus.
+   Used on: SkillIcon components in tiles and marquee (static mode only).
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-skill-icon {
+  transition: transform var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .hover-skill-icon:hover,
+  .hover-skill-icon:focus-visible {
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-skill-icon:hover,
+  .hover-skill-icon:focus-visible {
+    transform: none;
+  }
+}
+
+/* ── hover-table-row ─────────────────────────────────────────────
+   Admin table row hover: subtle background highlight.
+   Used on: admin data tables, message list, skill list.
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-table-row {
+  transition: background-color var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .hover-table-row:hover {
+    background-color: var(--color-surface-2);
+  }
+}
+
+/* ── hover-nav-link ──────────────────────────────────────────────
+   Navbar link hover: color transition only (no underline or movement).
+   Used on: main navigation links, mobile menu links.
+   ─────────────────────────────────────────────────────────────────── */
+@utility hover-nav-link {
+  transition: color var(--transition-hover);
+}
+
+@media (hover: hover) {
+  .hover-nav-link:hover,
+  .hover-nav-link:focus-visible {
+    color: var(--color-accent);
+  }
+}
+
+/* ── focus-ring ──────────────────────────────────────────────────
+   Consistent, visible focus ring for all interactive elements.
+   2px accent outline with offset. Always visible on keyboard focus.
+   Applied automatically via focus-visible where needed.
+   ─────────────────────────────────────────────────────────────────── */
+@utility focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   END HOVER & FOCUS INTERACTION SYSTEM
+   ══════════════════════════════════════════════════════════════════════ */

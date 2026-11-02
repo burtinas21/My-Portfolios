@@ -205,15 +205,8 @@ function isValidUrl(url) {
 .social-icon-link {
   @apply w-9 h-9 rounded-control
          flex items-center justify-center
-         text-muted
-         hover:text-accent hover:bg-surface-2
-         border border-transparent hover:border-line
-         transition-colors;
-}
-
-.social-icon-link:focus-visible {
-  outline: none;
-  box-shadow: var(--ring-focus);
+         text-muted border border-transparent
+         hover-icon focus-ring;
 }
 
 /* ── Buttons variant (contact section) ────────────────────────── */
@@ -230,19 +223,14 @@ function isValidUrl(url) {
          rounded-sm
          text-xs sm:text-sm
          uppercase tracking-wider font-medium
-         transition-all duration-150
-         cursor-pointer
-         select-none;
+         cursor-pointer select-none
+         focus-ring;
   font-family: var(--font-mono);
   min-height: 44px; /* touch target */
   border: 1px solid transparent;
   text-decoration: none;
-}
-
-/* Focus ring for keyboard users */
-.social-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+  transition: opacity var(--transition-hover),
+              border-color var(--transition-hover);
 }
 
 /* Filled variant (Contact me button): bg-fg text-bg */
@@ -250,8 +238,10 @@ function isValidUrl(url) {
   @apply bg-fg text-bg border-fg;
 }
 
-.social-btn--filled:hover {
-  opacity: 0.85;
+@media (hover: hover) {
+  .social-btn--filled:hover {
+    opacity: 0.85;
+  }
 }
 
 .social-btn--filled:active {
@@ -263,8 +253,10 @@ function isValidUrl(url) {
   @apply bg-transparent text-fg border-line;
 }
 
-.social-btn--outlined:hover {
-  @apply border-fg;
+@media (hover: hover) {
+  .social-btn--outlined:hover {
+    @apply border-fg;
+  }
 }
 
 .social-btn--outlined:active {
