@@ -10,6 +10,7 @@
 
 <script setup>
 import { usePortfolioStore } from '@/stores/portfolio.js'
+import AppContainer from '@/components/ui/AppContainer.vue'
 import SkeletonBlock from '@/components/ui/SkeletonBlock.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
@@ -23,7 +24,7 @@ const portfolioStore = usePortfolioStore()
     aria-labelledby="experience-title"
     class="py-20 border-b border-line/60"
   >
-    <div class="container-main space-y-12">
+    <AppContainer class="space-y-12">
       <!-- Section Header -->
       <div class="space-y-2 max-w-xl">
         <span class="inline-block text-xs font-mono font-semibold uppercase tracking-wider text-accent">
@@ -123,6 +124,6 @@ const portfolioStore = usePortfolioStore()
           </div>
         </article>
       </div>
-    </div>
+    </AppContainer>
   </section>
 </template>

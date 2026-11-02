@@ -16,6 +16,7 @@
 import { computed } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import { imageUrl } from '@/utils/url.js'
+import AppContainer from '@/components/ui/AppContainer.vue'
 import SkeletonBlock from '@/components/ui/SkeletonBlock.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 
@@ -46,7 +47,7 @@ function getSocialIcon(name) {
       aria-hidden="true"
     />
 
-    <div class="container-main">
+    <AppContainer>
       <!-- Loading Skeleton State -->
       <div v-if="portfolioStore.profileLoading && !profile" class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div class="lg:col-span-8 space-y-5">
@@ -222,6 +223,6 @@ function getSocialIcon(name) {
           </div>
         </div>
       </div>
-    </div>
+    </AppContainer>
   </section>
 </template>

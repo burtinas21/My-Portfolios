@@ -12,6 +12,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio.js'
+import AppContainer from '@/components/ui/AppContainer.vue'
 import ProjectCard from '@/components/sections/ProjectCard.vue'
 import ProjectModal from '@/components/sections/ProjectModal.vue'
 import SkeletonBlock from '@/components/ui/SkeletonBlock.vue'
@@ -64,7 +65,7 @@ function openDetails(project) {
     aria-labelledby="work-title"
     class="py-20 border-b border-line/60"
   >
-    <div class="container-main space-y-12">
+    <AppContainer class="space-y-12">
       <!-- Section Header -->
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div class="space-y-2 max-w-xl">
@@ -179,7 +180,7 @@ function openDetails(project) {
           @view-details="openDetails"
         />
       </div>
-    </div>
+    </AppContainer>
 
     <!-- Project Details Modal -->
     <ProjectModal

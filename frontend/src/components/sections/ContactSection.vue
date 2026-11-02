@@ -15,6 +15,7 @@ import { ref, reactive } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import { sendMessage } from '@/api/messages.js'
 import { useToast } from '@/composables/useToast.js'
+import AppContainer from '@/components/ui/AppContainer.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -138,7 +139,7 @@ function resetForm() {
     aria-labelledby="contact-title"
     class="py-20"
   >
-    <div class="container-main space-y-12">
+    <AppContainer class="space-y-12">
       <!-- Section Header -->
       <div class="space-y-2 max-w-xl">
         <span class="inline-block text-xs font-mono font-semibold uppercase tracking-wider text-accent">
@@ -334,6 +335,6 @@ function resetForm() {
           </div>
         </div>
       </div>
-    </div>
+    </AppContainer>
   </section>
 </template>

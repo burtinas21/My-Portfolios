@@ -16,6 +16,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import { useAuthStore } from '@/stores/auth.js'
+import AppContainer from '@/components/ui/AppContainer.vue'
 import ThemeToggle from '@/components/layout/ThemeToggle.vue'
 
 const portfolioStore = usePortfolioStore()
@@ -91,10 +92,11 @@ onUnmounted(() => {
       aria-hidden="true"
     />
 
-    <nav
-      class="container-main flex items-center justify-between h-16"
-      aria-label="Main Navigation"
-    >
+    <AppContainer>
+      <nav
+        class="flex items-center justify-between h-16"
+        aria-label="Main Navigation"
+      >
       <!-- Logo / Name Initials -->
       <a
         href="#hero"
@@ -202,7 +204,8 @@ onUnmounted(() => {
           </button>
         </div>
       </div>
-    </nav>
+      </nav>
+    </AppContainer>
 
     <!-- Mobile Dropdown Menu -->
     <Transition

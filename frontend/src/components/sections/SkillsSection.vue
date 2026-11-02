@@ -19,6 +19,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio.js'
+import AppContainer from '@/components/ui/AppContainer.vue'
 import SkeletonBlock from '@/components/ui/SkeletonBlock.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
@@ -73,7 +74,7 @@ onMounted(() => {
       recalculateAllMarquees()
     })
     // Observe the main container
-    const container = sectionRef.value?.querySelector('.container-main')
+    const container = sectionRef.value?.querySelector('.app-container')
     if (container) {
       resizeObserver.observe(container)
     }
@@ -227,7 +228,7 @@ const categoriesArray = computed(() => {
     aria-labelledby="skills-title"
     class="py-20 border-b border-line/60 bg-surface/30"
   >
-    <div class="container-main space-y-12">
+    <AppContainer class="space-y-12">
       <!-- Section Header -->
       <div class="flex items-center justify-between gap-4 max-w-full">
         <div class="space-y-2 flex-1 max-w-xl">
@@ -404,7 +405,7 @@ const categoriesArray = computed(() => {
           </ul>
         </div>
       </div>
-    </div>
+    </AppContainer>
   </section>
 </template>
 
