@@ -17,6 +17,7 @@ import {
 } from '@/api/admin/projects.js'
 import { useToast } from '@/composables/useToast.js'
 import { usePortfolioStore } from '@/stores/portfolio.js'
+import { assetUrl } from '@/utils/url.js'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue'
@@ -176,12 +177,6 @@ async function handleDelete() {
     isDeleting.value = false
   }
 }
-
-function resolveImageUrl(url) {
-  if (!url) return ''
-  if (url.startsWith('http')) return url
-  return `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://127.0.0.1:8000'}${url}`
-}
 </script>
 
 <template>
@@ -223,7 +218,7 @@ function resolveImageUrl(url) {
         <div class="h-36 bg-surface-2 relative overflow-hidden">
           <img
             v-if="project.image"
-            :src="resolveImageUrl(project.image)"
+            :src="assetUrl(project.image)"
             :alt="project.title"
             class="w-full h-full object-cover"
           />

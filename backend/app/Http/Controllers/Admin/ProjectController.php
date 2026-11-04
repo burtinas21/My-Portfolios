@@ -18,6 +18,7 @@ class ProjectController extends Controller
             'tag'          => 'required|string|max:50',
             'year'         => 'required|integer|min:2000|max:2100',
             'url'          => 'nullable|string|max:255',
+            // Accept relative paths ("/storage/...") or legacy full URLs (for migration period)
             'image'        => 'nullable|string|max:255',
             'stack'        => 'nullable|array',
             'stack.*'      => 'string|max:40',
@@ -40,13 +41,14 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         $data = $request->validate($this->rules());
-        
-        // Delete old image if a new one is provided
+
+        // Delete old image file when it changes (handles both relative and legacy full-URL formats)
         if ($request->filled('image') && $project->image && $project->image !== $request->image) {
-            $oldPath = str_replace('/storage/', '', $project->image);
-            Storage::disk('public')->delete($oldPath);
+            $oldStoragePath = preg_replace('#^https?://[^/]+/storage/#', '', $project->image);
+            $oldStoragePath = ltrim(str_replace('/storage/', '', $oldStoragePath), '/');
+            Storage::disk('public')->delete($oldStoragePath);
         }
-        
+
         $project->update($data);
 
         return response()->json($project);
@@ -54,12 +56,13 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
-        // Delete associated image if exists
+        // Delete associated image file (handles both relative and legacy full-URL formats)
         if ($project->image) {
-            $imagePath = str_replace('/storage/', '', $project->image);
+            $imagePath = preg_replace('#^https?://[^/]+/storage/#', '', $project->image);
+            $imagePath = ltrim(str_replace('/storage/', '', $imagePath), '/');
             Storage::disk('public')->delete($imagePath);
         }
-        
+
         $project->delete();
 
         return response()->noContent();

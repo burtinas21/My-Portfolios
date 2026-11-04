@@ -15,7 +15,7 @@
 <script setup>
 import { computed } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio.js'
-import { imageUrl } from '@/utils/url.js'
+import { assetUrl } from '@/utils/url.js'
 import AppContainer from '@/components/ui/AppContainer.vue'
 import SkeletonBlock from '@/components/ui/SkeletonBlock.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
@@ -23,7 +23,7 @@ import ErrorState from '@/components/ui/ErrorState.vue'
 const portfolioStore = usePortfolioStore()
 
 const profile = computed(() => portfolioStore.profile)
-const avatarUrl = computed(() => imageUrl(profile.value?.avatar))
+const avatarUrl = computed(() => assetUrl(profile.value?.avatar))
 
 function getSocialIcon(name) {
   const normalized = (name || '').toLowerCase()

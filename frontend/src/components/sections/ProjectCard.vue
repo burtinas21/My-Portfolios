@@ -12,7 +12,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { imageUrl } from '@/utils/url.js'
+import { assetUrl } from '@/utils/url.js'
 
 const props = defineProps({
   project: {
@@ -23,7 +23,7 @@ const props = defineProps({
 
 const emit = defineEmits(['view-details'])
 
-const fullImageUrl = computed(() => imageUrl(props.project.image))
+const fullImageUrl = computed(() => assetUrl(props.project.image))
 
 // Display max 4 stack items directly on the card for clean layout
 const visibleStack = computed(() => (props.project.stack || []).slice(0, 4))

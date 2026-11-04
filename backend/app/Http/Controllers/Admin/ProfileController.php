@@ -24,17 +24,21 @@ class ProfileController extends Controller
             'email'    => 'required|email',
             'location' => 'nullable|string|max:100',
             'status'   => 'nullable|string|max:100',
+            // Accept relative paths ("/storage/...") or any string up to 255 chars.
+            // Full http(s) URLs are also accepted for backwards compat during migration.
             'avatar'   => 'nullable|string|max:255',
         ]);
 
         $profile = Profile::first() ?? new Profile();
-        
-        // Delete old avatar if a new one is provided
+
+        // Delete old avatar file when it changes (works for both "/storage/..." and legacy full URLs)
         if ($request->filled('avatar') && $profile->avatar && $profile->avatar !== $request->avatar) {
-            $oldPath = str_replace('/storage/', '', $profile->avatar);
-            Storage::disk('public')->delete($oldPath);
+            // Derive the storage-relative path regardless of format
+            $oldStoragePath = preg_replace('#^https?://[^/]+/storage/#', '', $profile->avatar);
+            $oldStoragePath = ltrim(str_replace('/storage/', '', $oldStoragePath), '/');
+            Storage::disk('public')->delete($oldStoragePath);
         }
-        
+
         $profile->fill($data)->save();
 
         return response()->json($profile);

@@ -1,45 +1,52 @@
 /**
- * url.js — URL helpers
- * ────────────────────
- * Turns relative image paths returned by the API (e.g. "/storage/uploads/photo.png")
- * into absolute URLs (e.g. "http://127.0.0.1:8000/storage/uploads/photo.png").
+ * url.js — Asset URL helper
+ * ──────────────────────────
+ * Single source of truth for turning a stored image path into a displayable URL.
  *
- * Used by: any component that displays images (projects, profile avatar).
+ * The backend stores image paths as relative strings like "/storage/uploads/photo.png".
+ * To display them we prepend VITE_BACKEND_URL (set in .env / deployment config).
+ *
+ * Rule: if the value already starts with "http" it is returned unchanged (external images,
+ * or legacy full URLs that haven't been migrated yet with `php artisan images:make-relative`).
+ *
+ * Usage:
+ *   import { assetUrl } from '@/utils/url.js'
+ *   <img :src="assetUrl(profile.avatar)" />
  */
 
-/**
- * The backend root URL, read from the .env file.
- * Vite replaces this at build time so the value is always a string.
- */
+/** Backend root — set VITE_BACKEND_URL in your .env / deployment environment. */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
 
 /**
- * Convert a relative image path from the API into a full URL.
+ * Convert a stored image path into a displayable URL.
  *
- * The API returns image paths like "/storage/uploads/1234_photo.png".
- * To show them in an <img> tag we need the complete URL including the host.
- *
- * @param {string|null} path — The relative path from the API (e.g. "/storage/uploads/img.png")
- * @returns {string|null} — The full URL, or null if no path was given
+ * @param {string|null} value — relative path ("/storage/...") or any string from the API
+ * @returns {string|null} — full URL ready for <img src>, or null when value is empty
  *
  * @example
- *   imageUrl('/storage/uploads/photo.png')
+ *   assetUrl('/storage/uploads/photo.png')
  *   // → "http://127.0.0.1:8000/storage/uploads/photo.png"
  *
- *   imageUrl(null) // → null
- *   imageUrl('https://example.com/img.jpg') // → "https://example.com/img.jpg" (unchanged)
+ *   assetUrl('https://cdn.example.com/img.jpg')
+ *   // → "https://cdn.example.com/img.jpg"  (returned unchanged)
+ *
+ *   assetUrl(null) // → null
  */
-export function imageUrl(path) {
-  if (!path) return null
+export function assetUrl(value) {
+  if (!value) return null
 
-  // If the path is already a full URL, return it as-is
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path
+  // Already an absolute URL — return as-is (external images or legacy full backend URLs)
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value
   }
 
-  // Otherwise prepend the backend URL
-  // Make sure there's exactly one slash between the base and the path
+  // Relative path — prepend the backend base URL.
+  // Ensure exactly one slash between the base and the path.
   const base = BACKEND_URL.replace(/\/+$/, '')
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  const cleanPath = value.startsWith('/') ? value : `/${value}`
   return `${base}${cleanPath}`
 }
+
+// Keep the legacy export name so any import that wasn't updated yet still works.
+// Once all call-sites use assetUrl(), this alias can be removed.
+export { assetUrl as imageUrl }

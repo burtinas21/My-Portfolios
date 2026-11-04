@@ -11,7 +11,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { imageUrl } from '@/utils/url.js'
+import { assetUrl } from '@/utils/url.js'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
@@ -28,7 +28,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:open'])
 
-const fullImageUrl = computed(() => imageUrl(props.project?.image))
+const fullImageUrl = computed(() => assetUrl(props.project?.image))
 
 function close() {
   emit('update:open', false)
