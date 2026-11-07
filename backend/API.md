@@ -101,7 +101,9 @@ when those features are installed, published `certifications`, CV availability,
 and public assistant settings.
 
 Social links are ordered by `sort_order`, then `id`, and include the nullable
-`icon` value selected in the admin.
+`icon` value selected in the admin. Experiences include the legacy `period` and
+`description` fields plus nullable date, employment, location, highlight, and
+technology fields. Their ordering is described under [Get Experiences](#get-experiences).
 
 **Caching:** Responses include a weak `ETag` and `Cache-Control: no-cache`.
 Send the received value in `If-None-Match`; unchanged data returns `304 Not Modified`.
@@ -304,7 +306,8 @@ Get all skills grouped by category, ordered by sort_order.
 ### Get Experiences
 **GET** `/experiences`
 
-Get all work experiences, ordered by sort_order.
+Get all work experiences, ordered with current roles first, then by start date
+descending with undated roles last, sort_order ascending, and ID descending.
 
 **Success Response (200):**
 ```json
@@ -315,6 +318,14 @@ Get all work experiences, ordered by sort_order.
     "organization": "Tech Solutions Inc.",
     "period": "2022 - Present",
     "description": "Leading development of enterprise web applications...",
+    "start_date": "2022-01-01",
+    "end_date": null,
+    "is_current": true,
+    "employment_type": "Full-time",
+    "work_mode": "Hybrid",
+    "location": "New York, NY",
+    "highlights": ["Led a team of five developers"],
+    "technologies": ["Laravel", "Vue.js"],
     "sort_order": 1,
     "created_at": "2024-01-01T00:00:00.000000Z",
     "updated_at": "2024-01-01T00:00:00.000000Z"
@@ -339,6 +350,10 @@ Submit a contact form message.
   "body": "Hello, I would like to discuss a project..."
 }
 ```
+
+`period` and `description` remain available for older entries. Date-based
+entries can omit `period`; the client formats the date range from `start_date`,
+`end_date`, and `is_current`.
 
 **Validation Rules:**
 - `name`: required, string, max 100 characters
@@ -888,8 +903,16 @@ Returns array of all experiences.
 {
   "role": "Senior Developer",
   "organization": "Company Name",
-  "period": "2022 - Present",
+  "period": null,
   "description": "Job description...",
+  "start_date": "2022-01-01",
+  "end_date": null,
+  "is_current": true,
+  "employment_type": "Full-time",
+  "work_mode": "Remote",
+  "location": "New York, NY",
+  "highlights": ["Led a team of five developers"],
+  "technologies": ["Laravel", "Vue.js"],
   "sort_order": 1
 }
 ```
@@ -897,9 +920,20 @@ Returns array of all experiences.
 **Validation Rules:**
 - `role`: required, string, max 120
 - `organization`: required, string, max 120
-- `period`: required, string, max 50
+- `period`: nullable, string, max 50 (legacy fallback when dates are empty)
 - `description`: nullable, string, max 1500
+- `start_date`: nullable date, not in the future
+- `end_date`: nullable date, on or after `start_date`; prohibited when `is_current` is true
+- `is_current`: optional boolean, defaults to false
+- `employment_type`: nullable, one of Full-time, Part-time, Internship, Freelance, Contract, Volunteer
+- `work_mode`: nullable, one of Remote, On-site, Hybrid
+- `location`: nullable, string, max 100
+- `highlights`: nullable array of up to 6 strings, max 200 characters each
+- `technologies`: nullable array of up to 8 strings, max 30 characters each
 - `sort_order`: nullable, integer, min 0
+
+Empty array items are trimmed and removed. Experience lists use the same ordering
+as the public endpoint. Existing `period` and `description` values remain intact.
 
 **Success Response (201):**
 Returns created experience object.

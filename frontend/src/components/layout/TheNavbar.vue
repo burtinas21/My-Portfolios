@@ -19,6 +19,7 @@ import { useAuthStore } from '@/stores/auth.js'
 import AppContainer from '@/components/ui/AppContainer.vue'
 import ThemeToggle from '@/components/layout/ThemeToggle.vue'
 import { getVisibleNavigationSections } from '@/utils/navigationSections.js'
+import { getCvDownloadUrl } from '@/api/cv.js'
 
 const portfolioStore = usePortfolioStore()
 const authStore = useAuthStore()
@@ -138,6 +139,31 @@ onUnmounted(() => {
         <!-- Theme Switcher -->
         <ThemeToggle />
 
+        <!-- Public CV link; open the PDF inline in a new tab -->
+        <a
+          v-if="portfolioStore.cv.available"
+          :href="getCvDownloadUrl(true)"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="icon-button"
+          aria-label="View CV / Resume (PDF)"
+          title="View CV / Resume"
+        >
+          <svg
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6M8 13h8M8 17h8" />
+          </svg>
+        </a>
+
         <!-- Admin Portal Icon Link (only shown when authenticated) -->
         <RouterLink
           v-if="authStore.isAuthenticated"
@@ -155,7 +181,7 @@ onUnmounted(() => {
         <!-- Mobile Menu Hamburger Button -->
         <button
           type="button"
-          class="icon-button lg:hidden"
+          class="icon-button mobile-menu-toggle lg:hidden"
           :aria-expanded="isMobileMenuOpen"
           aria-controls="mobile-menu"
           aria-label="Toggle mobile menu"
@@ -249,6 +275,12 @@ onUnmounted(() => {
   transition: color var(--transition-hover),
               border-color var(--transition-hover),
               background-color var(--transition-hover);
+}
+
+@media (min-width: 64rem) {
+  .mobile-menu-toggle {
+    display: none;
+  }
 }
 
 @media (hover: hover) {

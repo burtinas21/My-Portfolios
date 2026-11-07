@@ -3,37 +3,31 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ExperienceRequest;
 use App\Models\Experience;
-use Illuminate\Http\Request;
 
 class ExperienceController extends Controller
 {
-    private function rules(): array
-    {
-        return [
-            'role'         => 'required|string|max:120',
-            'organization' => 'required|string|max:120',
-            'period'       => 'required|string|max:50',
-            'description'  => 'nullable|string|max:1500',
-            'sort_order'   => 'nullable|integer|min:0',
-        ];
-    }
-
     public function index()
     {
-        return response()->json(Experience::orderBy('sort_order')->get());
+        return response()->json(Experience::query()->displayOrder()->get());
     }
 
-    public function store(Request $request)
+    public function store(ExperienceRequest $request)
     {
-        return response()->json(Experience::create($request->validate($this->rules())), 201);
+        return response()->json(Experience::create($request->validated()), 201);
     }
 
-    public function update(Request $request, Experience $experience)
+    public function update(ExperienceRequest $request, Experience $experience)
     {
-        $experience->update($request->validate($this->rules()));
+        $data = $request->validated();
+        if (($data['is_current'] ?? false) && ! array_key_exists('end_date', $data)) {
+            $data['end_date'] = null;
+        }
 
-        return response()->json($experience);
+        $experience->update($data);
+
+        return response()->json($experience->refresh());
     }
 
     public function destroy(Experience $experience)

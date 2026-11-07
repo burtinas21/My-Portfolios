@@ -64,7 +64,7 @@ class SitePayload
             || ! is_array($payload['socials'] ?? null)
             || ! is_array($payload['projects'] ?? null)
             || ! is_array($payload['skills'] ?? null)
-            || ! is_array($payload['experiences'] ?? null)) {
+            || ! $this->hasExperienceShape($payload['experiences'] ?? null)) {
             return false;
         }
 
@@ -83,6 +83,29 @@ class SitePayload
         }
 
         return ! class_exists(AssistantSetting::class) || is_array($payload['assistant'] ?? null);
+    }
+
+    private function hasExperienceShape(mixed $experiences): bool
+    {
+        if (! is_array($experiences)) {
+            return false;
+        }
+
+        foreach ($experiences as $experience) {
+            if (! is_array($experience)
+                || ! array_key_exists('start_date', $experience)
+                || ! array_key_exists('end_date', $experience)
+                || ! array_key_exists('is_current', $experience)
+                || ! array_key_exists('employment_type', $experience)
+                || ! array_key_exists('work_mode', $experience)
+                || ! array_key_exists('location', $experience)
+                || ! array_key_exists('highlights', $experience)
+                || ! array_key_exists('technologies', $experience)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -204,9 +227,13 @@ class SitePayload
     private function experiences(): array
     {
         return Experience::query()
-            ->select(['id', 'role', 'organization', 'period', 'description', 'sort_order', 'created_at', 'updated_at'])
-            ->orderBy('sort_order')
-            ->orderBy('id')
+            ->select([
+                'id', 'role', 'organization', 'period', 'description',
+                'start_date', 'end_date', 'is_current', 'employment_type',
+                'work_mode', 'location', 'highlights', 'technologies',
+                'sort_order', 'created_at', 'updated_at',
+            ])
+            ->displayOrder()
             ->get()
             ->toArray();
     }
