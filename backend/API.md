@@ -218,6 +218,7 @@ Get all published projects, ordered by sort_order.
     "tag": "Web App",
     "year": 2024,
     "url": "https://example.com/demo",
+    "github_url": "https://github.com/yourname/project",
     "image": "/storage/uploads/project1.png",
     "stack": ["Laravel", "Vue.js", "Tailwind CSS", "PostgreSQL"],
     "is_published": true,
@@ -245,6 +246,7 @@ Get a single published project by ID.
   "tag": "Web App",
   "year": 2024,
   "url": "https://example.com/demo",
+  "github_url": "https://github.com/yourname/project",
   "image": "/storage/uploads/project1.png",
   "stack": ["Laravel", "Vue.js", "Tailwind CSS"],
   "is_published": true,
@@ -723,6 +725,7 @@ Returns array of all projects.
   "tag": "Web App",
   "year": 2024,
   "url": "https://example.com",
+  "github_url": "https://github.com/yourname/project",
   "image": "/storage/uploads/project.png",
   "stack": ["Laravel", "Vue.js"],
   "is_published": true,
@@ -737,6 +740,7 @@ Returns array of all projects.
 - `tag`: required, string, max 50
 - `year`: required, integer, 2000-2100
 - `url`: nullable, string, max 255
+- `github_url`: nullable HTTPS GitHub repository URL, max 255
 - `image`: nullable, string, max 255
 - `stack`: nullable, array
 - `stack.*`: string, max 40

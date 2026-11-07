@@ -71,6 +71,82 @@ class AdminApiTest extends TestCase
         $response->assertJsonCount(2); // Both published and unpublished
     }
 
+    public function test_project_github_url_is_saved_and_returned_in_public_payload(): void
+    {
+        $githubUrl = 'https://github.com/example/project';
+
+        $response = $this->withToken($this->token)
+            ->postJson('/api/admin/projects', [
+                'title' => 'Example Project',
+                'summary' => 'A sample project',
+                'tag' => 'Web App',
+                'year' => 2024,
+                'url' => 'https://example.com/demo',
+                'github_url' => $githubUrl,
+                'is_published' => true,
+                'sort_order' => 1,
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('url', 'https://example.com/demo')
+            ->assertJsonPath('github_url', $githubUrl);
+        $this->assertDatabaseHas('projects', [
+            'title' => 'Example Project',
+            'github_url' => $githubUrl,
+        ]);
+
+        $this->getJson('/api/site')
+            ->assertOk()
+            ->assertJsonPath('projects.0.url', 'https://example.com/demo')
+            ->assertJsonPath('projects.0.github_url', $githubUrl);
+    }
+
+    public function test_project_github_url_can_be_updated_or_left_null(): void
+    {
+        $project = Project::create([
+            'title' => 'Example Project',
+            'summary' => 'A sample project',
+            'tag' => 'Web App',
+            'year' => 2024,
+            'url' => 'https://example.com/demo',
+            'is_published' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->withToken($this->token)
+            ->putJson("/api/admin/projects/{$project->id}", [
+                'title' => 'Example Project',
+                'summary' => 'A sample project',
+                'tag' => 'Web App',
+                'year' => 2024,
+                'url' => 'https://example.com/demo',
+                'github_url' => 'https://github.com/example/updated-project',
+                'is_published' => true,
+                'sort_order' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('github_url', 'https://github.com/example/updated-project');
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'github_url' => 'https://github.com/example/updated-project',
+        ]);
+    }
+
+    public function test_project_github_url_must_be_a_github_repository_url(): void
+    {
+        $this->withToken($this->token)
+            ->postJson('/api/admin/projects', [
+                'title' => 'Example Project',
+                'summary' => 'A sample project',
+                'tag' => 'Web App',
+                'year' => 2024,
+                'github_url' => 'https://example.com/not-github',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('github_url');
+    }
+
     public function test_admin_can_create_skill(): void
     {
         $response = $this->withHeaders([

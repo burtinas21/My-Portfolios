@@ -12,6 +12,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { ExternalLink, Github } from 'lucide-vue-next'
 import { assetUrl } from '@/utils/url.js'
 
 const props = defineProps({
@@ -108,10 +109,10 @@ const remainingCount = computed(() => Math.max(0, (props.project.stack || []).le
       </div>
 
       <!-- Action Footer -->
-      <div class="pt-3 border-t border-line flex items-center justify-between gap-2">
+      <div class="pt-3 border-t border-line flex flex-wrap items-center justify-between gap-2">
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-hover transition-colors py-1 focus-ring rounded-control"
+          class="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 text-xs font-semibold text-accent hover:text-accent-hover transition-colors focus-ring"
           @click="emit('view-details', project)"
         >
           <span>View Details</span>
@@ -120,21 +121,30 @@ const remainingCount = computed(() => Math.max(0, (props.project.stack || []).le
           </svg>
         </button>
 
-        <a
-          v-if="project.url"
-          :href="project.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Open live project"
-          class="inline-flex items-center gap-1 text-xs text-muted hover-link rounded-control px-2 py-1"
-        >
-          <span>Live Demo</span>
-          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
-          </svg>
-        </a>
+        <div class="flex flex-wrap items-center gap-1">
+          <a
+            v-if="project.github_url"
+            :href="project.github_url"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View GitHub repository"
+            class="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 text-xs font-medium text-muted hover-link focus-ring"
+          >
+            <Github class="h-4 w-4" aria-hidden="true" />
+            <span>GitHub</span>
+          </a>
+          <a
+            v-if="project.url"
+            :href="project.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open live demo"
+            class="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 text-xs font-medium text-muted hover-link focus-ring"
+          >
+            <ExternalLink class="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Live Demo</span>
+          </a>
+        </div>
       </div>
     </div>
   </article>

@@ -18,6 +18,7 @@ class Project extends Model
         'tag',
         'year',
         'url',
+        'github_url',
         'image',
         'stack',
         'is_published',

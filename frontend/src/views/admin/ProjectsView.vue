@@ -47,6 +47,7 @@ const emptyForm = () => ({
   tag: '',
   year: new Date().getFullYear(),
   url: '',
+  github_url: '',
   image: null,
   stack: [],
   is_published: false,
@@ -56,7 +57,7 @@ const emptyForm = () => ({
 const form = reactive(emptyForm())
 
 const errors = reactive({
-  title: '', summary: '', detail: '', tag: '', year: '', url: '', image: '', stack: '', sort_order: '',
+  title: '', summary: '', detail: '', tag: '', year: '', url: '', github_url: '', image: '', stack: '', sort_order: '',
 })
 
 // Delete confirm
@@ -101,6 +102,7 @@ function openEdit(project) {
     tag: project.tag || '',
     year: project.year || new Date().getFullYear(),
     url: project.url || '',
+    github_url: project.github_url || '',
     image: project.image || null,
     stack: Array.isArray(project.stack) ? [...project.stack] : [],
     is_published: !!project.is_published,
@@ -128,6 +130,7 @@ async function handleSave() {
       tag: form.tag.trim(),
       year: Number(form.year),
       url: form.url.trim() || null,
+      github_url: form.github_url.trim() || null,
       image: form.image || null,
       stack: form.stack,
       is_published: form.is_published,
@@ -153,7 +156,7 @@ async function handleSave() {
         if (f in errors) errors[f] = msgs[0]
       })
       // Switch to the tab that has errors
-      const basicFields = ['title', 'summary', 'tag', 'year', 'sort_order']
+      const basicFields = ['title', 'summary', 'tag', 'year', 'url', 'github_url', 'sort_order']
       const hasBasicError = basicFields.some((f) => errors[f])
       if (hasBasicError) activeTab.value = 'basic'
     } else {
@@ -330,10 +333,16 @@ async function handleDelete() {
             </div>
           </div>
 
-          <!-- Live URL -->
+          <!-- Project URLs -->
           <div class="space-y-1.5">
-            <label for="proj-url" class="block text-sm font-medium text-fg">Live URL</label>
-            <input id="proj-url" v-model="form.url" type="url" maxlength="255" placeholder="https://example.com" class="input-field w-full" />
+            <label for="proj-url" class="block text-sm font-medium text-fg">Live Demo URL</label>
+            <input id="proj-url" v-model="form.url" type="url" maxlength="255" placeholder="https://example.com" class="input-field w-full" :class="errors.url ? 'border-danger' : ''" />
+            <p v-if="errors.url" class="text-xs text-danger">{{ errors.url }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <label for="proj-github-url" class="block text-sm font-medium text-fg">GitHub Repository URL</label>
+            <input id="proj-github-url" v-model="form.github_url" type="url" maxlength="255" placeholder="https://github.com/owner/repository" class="input-field w-full" :class="errors.github_url ? 'border-danger' : ''" />
+            <p v-if="errors.github_url" class="text-xs text-danger">{{ errors.github_url }}</p>
           </div>
         </div>
 

@@ -18,6 +18,7 @@ class ProjectController extends Controller
             'tag'          => 'required|string|max:50',
             'year'         => 'required|integer|min:2000|max:2100',
             'url'          => 'nullable|string|max:255',
+            'github_url'   => ['nullable', 'string', 'max:255', 'regex:~^https://(?:www\\.)?github\\.com/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9_.-]+/?$~i'],
             // Accept relative paths ("/storage/...") or legacy full URLs (for migration period)
             'image'        => 'nullable|string|max:255',
             'stack'        => 'nullable|array',

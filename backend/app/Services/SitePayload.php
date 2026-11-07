@@ -202,7 +202,7 @@ class SitePayload
     {
         return Project::query()
             ->select([
-                'id', 'title', 'summary', 'detail', 'tag', 'year', 'url',
+                'id', 'title', 'summary', 'detail', 'tag', 'year', 'url', 'github_url',
                 'image', 'stack', 'is_published', 'sort_order', 'created_at', 'updated_at',
             ])
             ->where('is_published', true)
