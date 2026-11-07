@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\AvatarImageOptimizer;
+use App\Services\SitePayload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,9 +24,17 @@ class UploadController extends Controller
     {
         $request->validate([
             'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048', // max 2 MB
+            'optimize_avatar' => ['sometimes', 'boolean'],
         ]);
 
         $file = $request->file('image');
+        $optimizeAvatar = $request->boolean('optimize_avatar');
+
+        if ($optimizeAvatar && ! function_exists('imagewebp')) {
+            return response()->json([
+                'message' => 'Avatar optimization is unavailable on this server.',
+            ], 503);
+        }
 
         // Generate a unique, collision-resistant filename
         $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -36,14 +46,28 @@ class UploadController extends Controller
         //   "/storage/uploads/filename.ext"
         //   Works on every host — combine with VITE_BACKEND_URL on the frontend to display.
         $relativePath = '/storage/' . $storagePath;
+        $optimizedPath = null;
+
+        if ($optimizeAvatar) {
+            $sourcePath = $file->getRealPath();
+            if ($sourcePath === false) {
+                return response()->json([
+                    'message' => 'The uploaded avatar could not be read for optimization.',
+                ], 422);
+            }
+
+            $optimizedPath = app(AvatarImageOptimizer::class)->optimize($sourcePath, $storagePath);
+        }
 
         // The full URL is returned only as a convenience for the upload response preview.
-        // The frontend should use the "path" field, not this one.
-        $absoluteUrl = Storage::disk('public')->url($storagePath);
+        // Build the absolute URL using the app URL from config.
+        $absoluteUrl = url($relativePath);
+        SitePayload::forgetCache();
 
         return response()->json([
             'path' => $relativePath,  // persist this in profiles.avatar / projects.image
             'url'  => $absoluteUrl,   // display-only; never save to the database
+            'optimized_path' => $optimizedPath ? '/storage/' . $optimizedPath : null,
         ], 201);
     }
 }

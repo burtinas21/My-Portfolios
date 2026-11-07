@@ -152,8 +152,8 @@ function clearImage() {
         <div class="w-full max-w-xs">
           <div class="h-1.5 bg-line rounded-full overflow-hidden">
             <div
-              class="h-full bg-accent transition-all duration-200 rounded-full"
-              :style="{ width: progress + '%' }"
+              class="h-full w-full origin-left rounded-full bg-accent transition-transform duration-200"
+              :style="{ transform: `scaleX(${progress / 100})` }"
             />
           </div>
           <p class="text-xs text-muted text-center mt-1">Uploading... {{ progress }}%</p>

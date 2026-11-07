@@ -12,12 +12,13 @@
 -->
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import { useAuthStore } from '@/stores/auth.js'
 import AppContainer from '@/components/ui/AppContainer.vue'
 import ThemeToggle from '@/components/layout/ThemeToggle.vue'
+import { getVisibleNavigationSections } from '@/utils/navigationSections.js'
 
 const portfolioStore = usePortfolioStore()
 const authStore = useAuthStore()
@@ -31,13 +32,8 @@ const isMobileMenuOpen = ref(false)
 const scrollProgress = ref(0)
 
 // Navigation items definition
-const navItems = [
-  { label: 'About', href: '#hero' },
-  { label: 'Work', href: '#work' },
-  { label: 'Skills', href: '#skills' },
-  { label: 'Experience', href: '#experience' },
-  { label: 'Contact', href: '#contact' },
-]
+const navItems = computed(() => getVisibleNavigationSections(portfolioStore.certifications)
+  .map((section) => ({ label: section.label, href: `#${section.id}` })))
 
 /**
  * Handle scroll events:
@@ -50,8 +46,7 @@ function handleScroll() {
   scrollProgress.value = docHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / docHeight) * 100)) : 0
 
   // Determine which section is currently visible
-  const sections = ['contact', 'experience', 'skills', 'work', 'hero']
-  for (const id of sections) {
+  for (const { id } of [...navItems.value].reverse().map((item) => ({ id: item.href.slice(1) }))) {
     const el = document.getElementById(id)
     if (el) {
       const rect = el.getBoundingClientRect()
@@ -63,6 +58,8 @@ function handleScroll() {
     }
   }
 }
+
+watch(() => portfolioStore.certifications.length, handleScroll)
 
 /**
  * Close mobile menu when an anchor link is clicked
@@ -87,8 +84,8 @@ onUnmounted(() => {
   >
     <!-- Reading scroll progress indicator line -->
     <div
-      class="absolute top-0 left-0 h-[2px] bg-accent transition-all duration-75 ease-out"
-      :style="{ width: `${scrollProgress}%` }"
+      class="absolute top-0 left-0 h-[2px] w-full origin-left bg-accent transition-transform duration-75 ease-out"
+      :style="{ transform: `scaleX(${scrollProgress / 100})` }"
       aria-hidden="true"
     />
 
@@ -109,12 +106,12 @@ onUnmounted(() => {
           {{ portfolioStore.profile?.initials || 'DEV' }}
         </span>
         <span class="font-semibold text-base hidden sm:inline-block tracking-tight hover-nav-link">
-          {{ portfolioStore.profile?.name || 'Portfolio' }}
+          Burtinas
         </span>
       </a>
 
       <!-- Desktop Nav Links -->
-      <div class="hidden md:flex items-center gap-1">
+      <div class="hidden lg:flex items-center gap-1">
         <a
           v-for="item in navItems"
           :key="item.href"
@@ -136,73 +133,59 @@ onUnmounted(() => {
         </a>
       </div>
 
-      <!-- Right controls: Theme Toggle + Contact CTA + Admin Link + Mobile Menu Toggle -->
+      <!-- Right controls: Theme Toggle + Admin Link + Mobile Menu Toggle -->
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Quick CTA: Contact (hidden on small screens) -->
-        <a
-          href="#contact"
-          class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-control text-xs font-semibold bg-accent-soft text-accent hover-button-outlined focus-ring"
+        <!-- Theme Switcher -->
+        <ThemeToggle />
+
+        <!-- Admin Portal Icon Link (only shown when authenticated) -->
+        <RouterLink
+          v-if="authStore.isAuthenticated"
+          to="/admin"
+          title="Admin Panel"
+          class="icon-button"
+          aria-label="Admin Dashboard"
         >
-          <span>Hire Me</span>
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2" />
+            <path d="M7 7h.01M7 12h.01M7 17h.01M12 7h5M12 12h5M12 17h5" />
           </svg>
-        </a>
+        </RouterLink>
 
-        <!-- Icon buttons group - all equal size (44x44px), same icon size (20px), consistent gap -->
-        <div class="flex items-center" :class="authStore.isAuthenticated ? 'gap-2 sm:gap-3' : 'gap-2 sm:gap-3'">
-          <!-- Theme Switcher -->
-          <ThemeToggle />
-
-          <!-- Admin Portal Icon Link (only shown when authenticated) -->
-          <RouterLink
-            v-if="authStore.isAuthenticated"
-            to="/admin"
-            title="Admin Panel"
-            class="icon-button"
-            aria-label="Admin Dashboard"
+        <!-- Mobile Menu Hamburger Button -->
+        <button
+          type="button"
+          class="icon-button lg:hidden"
+          :aria-expanded="isMobileMenuOpen"
+          aria-controls="mobile-menu"
+          aria-label="Toggle mobile menu"
+          @click="isMobileMenuOpen = !isMobileMenuOpen"
+        >
+          <!-- Hamburger icon when closed -->
+          <svg
+            v-if="!isMobileMenuOpen"
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
           >
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2" />
-              <path d="M7 7h.01M7 12h.01M7 17h.01M12 7h5M12 12h5M12 17h5" />
-            </svg>
-          </RouterLink>
-
-          <!-- Mobile Menu Hamburger Button -->
-          <button
-            type="button"
-            class="icon-button md:hidden"
-            :aria-expanded="isMobileMenuOpen"
-            aria-controls="mobile-menu"
-            aria-label="Toggle mobile menu"
-            @click="isMobileMenuOpen = !isMobileMenuOpen"
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <!-- Close X icon when open -->
+          <svg
+            v-else
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
           >
-            <!-- Hamburger icon when closed -->
-            <svg
-              v-if="!isMobileMenuOpen"
-              class="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            >
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <!-- Close X icon when open -->
-            <svg
-              v-else
-              class="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
       </div>
       </nav>
     </AppContainer>
@@ -219,7 +202,7 @@ onUnmounted(() => {
       <div
         v-if="isMobileMenuOpen"
         id="mobile-menu"
-        class="md:hidden border-b border-line bg-surface/95 backdrop-blur-md px-4 py-4 space-y-1.5 shadow-overlay"
+        class="lg:hidden border-b border-line bg-surface/95 backdrop-blur-md px-4 py-4 space-y-1.5 shadow-overlay"
       >
         <a
           v-for="item in navItems"

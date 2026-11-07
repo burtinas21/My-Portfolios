@@ -3,17 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Skill;
+use App\Services\SitePayload;
 
 class SkillController extends Controller
 {
     /**
      * Display skills grouped by category.
      */
-    public function index()
+    public function index(SitePayload $sitePayload)
     {
-        return response()->json(
-            Skill::orderBy('sort_order')->get()->groupBy('category')
-        );
+        return response()->json($sitePayload->payload()['skills']);
     }
 }

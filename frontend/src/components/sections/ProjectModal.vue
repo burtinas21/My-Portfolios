@@ -51,6 +51,10 @@ function close() {
         <img
           :src="fullImageUrl"
           :alt="project.title"
+          width="800"
+          height="450"
+          loading="lazy"
+          decoding="async"
           class="w-full h-full object-cover"
         />
       </div>

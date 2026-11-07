@@ -51,7 +51,8 @@ class ImageUrlTest extends TestCase
             ->postJson('/api/admin/uploads', ['image' => $file]);
 
         $response->assertStatus(201)
-            ->assertJsonStructure(['path', 'url']);
+            ->assertJsonStructure(['path', 'url'])
+            ->assertJsonPath('optimized_path', null);
 
         $data = $response->json();
 
@@ -87,6 +88,31 @@ class ImageUrlTest extends TestCase
 
         $this->assertDatabaseHas('profiles', ['avatar' => $path]);
         $this->assertStringStartsWith('/storage/', $profile->fresh()->avatar);
+    }
+
+    public function test_avatar_upload_preserves_original_and_creates_optimized_webp(): void
+    {
+        $file = UploadedFile::fake()->image('portrait.png', 1200, 1500);
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
+            ->postJson('/api/admin/uploads', [
+                'image' => $file,
+                'optimize_avatar' => true,
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonStructure(['path', 'url', 'optimized_path']);
+
+        $originalPath = str_replace('/storage/', '', $response->json('path'));
+        $optimizedPath = str_replace('/storage/', '', $response->json('optimized_path'));
+        $smallPath = str_replace('.optimized.webp', '.optimized-480.webp', $optimizedPath);
+        Storage::disk('public')->assertExists($originalPath);
+        Storage::disk('public')->assertExists($optimizedPath);
+        Storage::disk('public')->assertExists($smallPath);
+
+        $optimizedImage = getimagesize(Storage::disk('public')->path($optimizedPath));
+        $this->assertSame('image/webp', $optimizedImage['mime']);
+        $this->assertSame([800, 800], [$optimizedImage[0], $optimizedImage[1]]);
     }
 
     // ── images:make-relative --dry-run ─────────────────────────────────────
@@ -157,4 +183,3 @@ class ImageUrlTest extends TestCase
         $this->assertDatabaseHas('profiles', ['avatar' => '/storage/uploads/already-relative.png']);
     }
 }
-

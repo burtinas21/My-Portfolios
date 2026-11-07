@@ -16,6 +16,7 @@ import {
   deleteAdminProject,
 } from '@/api/admin/projects.js'
 import { useToast } from '@/composables/useToast.js'
+import { useDocumentTitle } from '@/composables/useDocumentTitle.js'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import { assetUrl } from '@/utils/url.js'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -23,6 +24,8 @@ import BaseModal from '@/components/ui/BaseModal.vue'
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue'
 import ImageUpload from '@/components/admin/ImageUpload.vue'
 import TagInput from '@/components/admin/TagInput.vue'
+
+useDocumentTitle('Projects')
 
 const toast = useToast()
 const portfolioStore = usePortfolioStore()
@@ -143,7 +146,7 @@ async function handleSave() {
     }
     modalOpen.value = false
     // Refresh the public portfolio store so the change appears on the public site
-    portfolioStore.refresh()
+    await portfolioStore.refresh()
   } catch (err) {
     if (err.fieldErrors) {
       Object.entries(err.fieldErrors).forEach(([f, msgs]) => {
@@ -170,7 +173,7 @@ async function handleDelete() {
     toast.success('Project deleted.')
     confirmOpen.value = false
     // Refresh the public portfolio store so deleted project disappears
-    portfolioStore.refresh()
+    await portfolioStore.refresh()
   } catch (err) {
     toast.error(err.message || 'Delete failed.')
   } finally {

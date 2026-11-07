@@ -41,7 +41,10 @@ const remainingCount = computed(() => Math.max(0, (props.project.stack || []).le
         v-if="fullImageUrl"
         :src="fullImageUrl"
         :alt="project.title"
+        width="800"
+        height="450"
         loading="lazy"
+        decoding="async"
         class="w-full h-full object-cover hover-image"
       />
 

@@ -12,8 +12,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { getAdminMessages, markMessageRead, deleteAdminMessage } from '@/api/admin/messages.js'
 import { useToast } from '@/composables/useToast.js'
+import { useDocumentTitle } from '@/composables/useDocumentTitle.js'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue'
+
+useDocumentTitle('Messages')
 
 const toast = useToast()
 

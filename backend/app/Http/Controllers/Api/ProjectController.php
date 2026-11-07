@@ -4,17 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Services\SitePayload;
 
 class ProjectController extends Controller
 {
     /**
      * Display a listing of published projects.
      */
-    public function index()
+    public function index(SitePayload $sitePayload)
     {
-        return response()->json(
-            Project::where('is_published', true)->orderBy('sort_order')->get()
-        );
+        return response()->json($sitePayload->payload()['projects']);
     }
 
     /**

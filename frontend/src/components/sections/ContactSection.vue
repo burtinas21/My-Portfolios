@@ -19,6 +19,7 @@ import AppContainer from '@/components/ui/AppContainer.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import SocialLinks from '@/components/ui/SocialLinks.vue'
 
 const portfolioStore = usePortfolioStore()
 const toast = useToast()
@@ -164,25 +165,6 @@ function resetForm() {
 
             <!-- Details List -->
             <div class="space-y-4">
-              <!-- Email -->
-              <div v-if="portfolioStore.profile?.email" class="flex items-start gap-3.5">
-                <div class="w-9 h-9 rounded-control bg-accent-soft text-accent flex items-center justify-center shrink-0">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect width="20" height="16" x="2" y="4" rx="2" />
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                  </svg>
-                </div>
-                <div>
-                  <span class="text-xs font-semibold text-muted uppercase tracking-wider block">Email</span>
-                  <a
-                    :href="`mailto:${portfolioStore.profile.email}`"
-                    class="text-sm font-medium hover-link break-all"
-                  >
-                    {{ portfolioStore.profile.email }}
-                  </a>
-                </div>
-              </div>
-
               <!-- Location -->
               <div v-if="portfolioStore.profile?.location" class="flex items-start gap-3.5">
                 <div class="w-9 h-9 rounded-control bg-accent-soft text-accent flex items-center justify-center shrink-0">
@@ -213,21 +195,9 @@ function resetForm() {
               </div>
             </div>
 
-            <!-- Social Links Quick List -->
-            <div v-if="portfolioStore.socials.length" class="pt-4 border-t border-line space-y-2">
-              <span class="text-xs font-semibold text-muted uppercase tracking-wider block">Social Profiles</span>
-              <div class="flex flex-wrap gap-2">
-                <a
-                  v-for="social in portfolioStore.socials"
-                  :key="social.id"
-                  :href="social.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="px-3 py-1.5 rounded-control text-xs font-medium bg-surface-2 border border-line hover-button-outlined focus-ring"
-                >
-                  {{ social.name }}
-                </a>
-              </div>
+            <div class="pt-4 border-t border-line">
+              <span class="text-xs font-semibold text-muted uppercase tracking-wider block mb-3">Contact & Social Profiles</span>
+              <SocialLinks variant="buttons" />
             </div>
           </div>
         </div>

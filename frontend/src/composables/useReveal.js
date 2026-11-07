@@ -29,6 +29,31 @@
 
 import { ref, onMounted, onUnmounted } from 'vue'
 
+const observerPool = new Map()
+
+function getObserver(threshold, rootMargin) {
+  const key = `${threshold}:${rootMargin}`
+  let state = observerPool.get(key)
+
+  if (!state && 'IntersectionObserver' in window) {
+    state = {
+      targets: new Set(),
+      observer: new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+
+          entry.target.classList.add('revealed')
+          state.observer.unobserve(entry.target)
+          state.targets.delete(entry.target)
+        })
+      }, { threshold, rootMargin }),
+    }
+    observerPool.set(key, state)
+  }
+
+  return state
+}
+
 /**
  * @param {object} [options]
  * @param {number} [options.threshold=0.1] — How much of the element must be visible (0-1)
@@ -44,36 +69,35 @@ export function useReveal(options = {}) {
   /** The DOM element to observe (set via ref="revealRef" in the template) */
   const revealRef = ref(null)
 
-  /** The IntersectionObserver instance (stored so we can clean it up) */
-  let observer = null
+  let state = null
+  let elements = []
 
   onMounted(() => {
     if (!revealRef.value) return
 
-    observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            // Add the class that triggers the CSS transition
-            entry.target.classList.add('revealed')
-            // Stop observing — the animation should only play once
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold, rootMargin },
-    )
+    elements = [...revealRef.value.querySelectorAll('.reveal')]
+    state = getObserver(threshold, rootMargin)
 
-    // Find all child elements with the "reveal" class and observe them
-    const elements = revealRef.value.querySelectorAll('.reveal')
-    elements.forEach((el) => observer.observe(el))
+    if (!state) {
+      elements.forEach((element) => element.classList.add('revealed'))
+      return
+    }
+
+    elements.forEach((element) => {
+      if (state.targets.has(element)) return
+
+      state.targets.add(element)
+      state.observer.observe(element)
+    })
   })
 
-  /* Clean up when the component is destroyed to prevent memory leaks */
   onUnmounted(() => {
-    if (observer) {
-      observer.disconnect()
-    }
+    if (!state) return
+
+    elements.forEach((element) => {
+      if (!state.targets.delete(element)) return
+      state.observer.unobserve(element)
+    })
   })
 
   return { revealRef }

@@ -7,7 +7,8 @@
   2. WorkSection — Filterable project showcase & detail modal
   3. SkillsSection — Grouped technical skill proficiency bars
   4. ExperienceSection — Career history & work milestones
-  5. ContactSection — Interactive message form & contact details
+  5. CertificationsSection — Professional achievements
+  6. ContactSection — Interactive message form & contact details
 
   Also configures reactive SEO meta tags based on backend profile data.
 -->
@@ -16,14 +17,19 @@
 import { computed, watchEffect } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import { useSeo } from '@/composables/useSeo.js'
+import { usePublicDocumentTitle } from '@/composables/useDocumentTitle.js'
 import { useReveal } from '@/composables/useReveal.js'
 import HeroSection from '@/components/sections/HeroSection.vue'
 import WorkSection from '@/components/sections/WorkSection.vue'
 import SkillsSection from '@/components/sections/SkillsSection.vue'
 import ExperienceSection from '@/components/sections/ExperienceSection.vue'
+import CertificationsSection from '@/components/sections/CertificationsSection.vue'
 import ContactSection from '@/components/sections/ContactSection.vue'
 
 const portfolioStore = usePortfolioStore()
+
+// Set document title: "<Profile Name> | <first part of headline>"
+usePublicDocumentTitle()
 
 // Setup scroll-reveal animation observer
 const { revealRef } = useReveal()
@@ -66,6 +72,9 @@ watchEffect(() => {
 
     <!-- Career Milestones Timeline -->
     <ExperienceSection />
+
+    <!-- Professional achievements -->
+    <CertificationsSection />
 
     <!-- Interactive Contact Form -->
     <ContactSection />

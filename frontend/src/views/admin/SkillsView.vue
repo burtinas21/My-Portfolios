@@ -11,12 +11,15 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { getAdminSkills, createAdminSkill, updateAdminSkill, deleteAdminSkill } from '@/api/admin/skills.js'
 import { useToast } from '@/composables/useToast.js'
+import { useDocumentTitle } from '@/composables/useDocumentTitle.js'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import { suggestIcon } from '@/utils/skillIcons.js'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue'
 import SkillIcon from '@/components/ui/SkillIcon.vue'
+
+useDocumentTitle('Skills')
 
 const toast = useToast()
 const portfolioStore = usePortfolioStore()
@@ -146,7 +149,7 @@ async function handleSave() {
     modalOpen.value = false
 
     // Refresh the portfolio store so the public site picks up the new icon
-    portfolioStore.refresh()
+    await portfolioStore.refresh()
   } catch (err) {
     if (err.fieldErrors) {
       Object.entries(err.fieldErrors).forEach(([f, msgs]) => {
@@ -169,7 +172,7 @@ async function handleDelete() {
     toast.success('Skill deleted.')
     confirmOpen.value = false
     // Refresh public store so deleted skill disappears
-    portfolioStore.refresh()
+    await portfolioStore.refresh()
   } catch (err) {
     toast.error(err.message || 'Delete failed.')
   } finally {

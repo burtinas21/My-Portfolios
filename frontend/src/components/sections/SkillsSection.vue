@@ -12,8 +12,12 @@
   - Respects prefers-reduced-motion (shows static grid instead)
   - Loading skeleton state, error state with retry, and empty state
   
-  Technical note: Each marquee track consists of two identical halves.
-  Each half is measured and repeated until wider than the container to prevent gaps.
+  Technical implementation:
+  - Each marquee track contains TWO identical halves
+  - Each half width is measured and repeated until it exceeds container width
+  - Repeat count is recalculated with ResizeObserver on window resize
+  - Animation speed is constant at ~40px/sec across all rows
+  - The second half has aria-hidden and tabindex=-1 for screen readers
 -->
 
 <script setup>
@@ -129,6 +133,7 @@ function getAnimationDirection(index) {
 /**
  * Recalculate repeat counts and durations for all marquee rows.
  * Measures container width and skill item width to determine optimal repetitions.
+ * Each half of the track must be wider than the container to prevent gaps.
  */
 function recalculateAllMarquees() {
   categoriesArray.value.forEach(categoryData => {
@@ -160,15 +165,14 @@ function recalculateAllMarquees() {
     const copyWidth = tempWrapper.offsetWidth
     containerEl.removeChild(tempWrapper)
 
-    // Calculate how many repetitions needed for one half to exceed container width
-    // Add +1 to ensure no gaps even with rounding
+    // Calculate repetitions: each HALF must be wider than container
+    // Add +1 to ensure no gaps even with rounding/subpixel issues
     const repeatsNeeded = Math.max(1, Math.ceil(containerWidth / copyWidth) + 1)
     
     // Store repeat count
     categoryRepeatCounts.value[categoryData.name] = repeatsNeeded
 
-    // Calculate animation duration based on half width
-    // Each half width = repeatsNeeded * copyWidth
+    // Calculate animation duration based on one half width (~40px/sec)
     const halfWidth = repeatsNeeded * copyWidth
     const duration = halfWidth / BASE_SPEED_PX_PER_SEC
     
@@ -178,7 +182,8 @@ function recalculateAllMarquees() {
 
 /**
  * Get repeated skills array for one half of the marquee track.
- * Uses measured repeat count, fallback to at least 12 items.
+ * Uses the calculated repeat count to ensure each half is wider than the container.
+ * Falls back to at least 12 total items if measurement hasn't completed yet.
  */
 function getRepeatedSkills(categoryName, skills) {
   const repeats = categoryRepeatCounts.value[categoryName] || Math.max(1, Math.ceil(12 / skills.length))

@@ -57,6 +57,16 @@ const navItems = [
     icon: `<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>`,
   },
   {
+    name: 'CV',
+    to: { name: 'admin-cv' },
+    icon: `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>`,
+  },
+  {
+    name: 'Achievements',
+    to: { name: 'admin-certifications' },
+    icon: `<path d="M12 15l-3.5 2 1-4-3-2.5 4-.3L12 6l1.5 4.2 4 .3-3 2.5 1 4z"/><circle cx="12" cy="12" r="9"/>`,
+  },
+  {
     name: 'Socials',
     to: { name: 'admin-socials' },
     icon: `<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>`,
@@ -65,6 +75,11 @@ const navItems = [
     name: 'Messages',
     to: { name: 'admin-messages' },
     icon: `<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>`,
+  },
+  {
+    name: 'AI Assistant',
+    to: { name: 'admin-assistant' },
+    icon: `<path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3.01 1.01 4.32L2.5 22l5.68-1.51C9.99 21.64 11.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.41 0-2.73-.36-3.88-.98l-.28-.15-2.89.77.77-2.89-.15-.28C4.36 14.73 4 13.41 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>`,
   },
 ]
 

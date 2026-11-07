@@ -5,8 +5,9 @@ Base URL: `http://localhost:8000/api`
 ## Table of Contents
 1. [Authentication](#authentication)
 2. [Public Endpoints](#public-endpoints)
-3. [Admin Endpoints](#admin-endpoints)
-4. [Error Responses](#error-responses)
+3. [AI Assistant](#ai-assistant)
+4. [Admin Endpoints](#admin-endpoints)
+5. [Error Responses](#error-responses)
 
 ---
 
@@ -91,6 +92,51 @@ Get authenticated user information.
 
 All public endpoints are read-only and do not require authentication.
 
+### Get Site Bootstrap
+**GET** `/site`
+
+Fetches the public portfolio data in one request. The response includes `profile`,
+`socials`, published `projects`, category-grouped `skills`, `experiences`, and,
+when those features are installed, published `certifications`, CV availability,
+and public assistant settings.
+
+Social links are ordered by `sort_order`, then `id`, and include the nullable
+`icon` value selected in the admin.
+
+**Caching:** Responses include a weak `ETag` and `Cache-Control: no-cache`.
+Send the received value in `If-None-Match`; unchanged data returns `304 Not Modified`.
+Portfolio edits invalidate the cached payload.
+
+**Success Response (200):**
+```json
+{
+  "profile": {},
+  "socials": [
+    {
+      "id": 1,
+      "name": "GitHub",
+      "icon": "simple-icons:github",
+      "url": "https://github.com/yourusername",
+      "sort_order": 1
+    }
+  ],
+  "projects": [],
+  "skills": {},
+  "experiences": [],
+  "certifications": [],
+  "cv": {
+    "available": false,
+    "size": null,
+    "updated_at": null
+  },
+  "assistant": {
+    "enabled": false,
+    "greeting": "Hello!",
+    "suggested_questions": []
+  }
+}
+```
+
 ### Get Profile
 **GET** `/profile`
 
@@ -108,17 +154,25 @@ Get the portfolio profile information.
   "location": "Your City, Country",
   "status": "Available for freelance work",
   "avatar": "/storage/uploads/avatar.png",
+  "avatar_optimized": "/storage/uploads/avatar.optimized.webp",
+  "avatar_optimized_srcset": "/storage/uploads/avatar.optimized-480.webp 480w, /storage/uploads/avatar.optimized.webp 800w",
   "created_at": "2024-01-01T00:00:00.000000Z",
   "updated_at": "2024-01-01T00:00:00.000000Z"
 }
 ```
+
+`avatar_optimized` is the square WebP avatar derivative when available; it is
+`null` otherwise. `avatar_optimized_srcset` is populated when responsive 480px
+and 800px variants are available. The original `avatar` path is retained as a
+fallback.
 
 ---
 
 ### Get Social Links
 **GET** `/socials`
 
-Get all social media links, ordered by sort_order.
+Get all social media links, ordered by `sort_order`, then `id`. Each link includes
+its nullable Iconify `icon` name.
 
 **Success Response (200):**
 ```json
@@ -126,6 +180,7 @@ Get all social media links, ordered by sort_order.
   {
     "id": 1,
     "name": "GitHub",
+    "icon": "simple-icons:github",
     "url": "https://github.com/yourusername",
     "sort_order": 1,
     "created_at": "2024-01-01T00:00:00.000000Z",
@@ -134,6 +189,7 @@ Get all social media links, ordered by sort_order.
   {
     "id": 2,
     "name": "LinkedIn",
+    "icon": null,
     "url": "https://linkedin.com/in/yourusername",
     "sort_order": 2,
     "created_at": "2024-01-01T00:00:00.000000Z",
@@ -309,6 +365,203 @@ Submit a contact form message.
 
 ---
 
+## CV/Resume
+
+Public endpoints for CV/resume information and downloads.
+
+### Get CV Availability
+**GET** `/cv`
+
+Get information about CV availability. Does not expose file path or internal details.
+
+**Success Response (200):**
+```json
+{
+  "available": true,
+  "size": 245760,
+  "updated_at": "2024-01-15T10:30:00.000000Z"
+}
+```
+
+Or when CV is not available (doesn't exist, is hidden, or file missing):
+```json
+{
+  "available": false,
+  "size": null,
+  "updated_at": null
+}
+```
+
+---
+
+### Download CV
+**GET** `/cv/download`
+
+Download the CV as a PDF file. Returns 404 if CV is not available (not uploaded, hidden, or file missing).
+
+**Rate Limit:** 30 requests per minute
+
+**Query Parameters:**
+- `inline=1` (optional): View in browser instead of downloading. Does not increment download counter.
+
+**Success Response (200):**
+Returns PDF file with headers:
+- `Content-Type: application/pdf`
+- `Content-Disposition: attachment; filename="john-doe-CV.pdf"` (or `inline` with `?inline=1`)
+- `X-Content-Type-Options: nosniff`
+- `Cache-Control: no-cache`
+
+Filename is generated from profile name: `{slug}-CV.pdf` (fallback: `CV.pdf`)
+
+**Implementation Notes:**
+- Download counter increments only for actual downloads (not inline views)
+- No visitor data or IP addresses are stored
+- File is served from private storage (not publicly accessible)
+
+**Error Response (404):**
+Returned when CV is not available (not uploaded, hidden, or file missing).
+
+---
+
+### Get Certifications
+**GET** `/certifications`
+
+Get published certifications ordered by `sort_order` ascending, then `issue_date` descending. Each item includes `is_expired`, which is true when its expiry date is before today. Unpublished certifications are not returned.
+
+**Success Response (200):**
+```json
+[
+  {
+    "id": 1,
+    "title": "Cloud Architecture Professional",
+    "issuer": "Example Academy",
+    "issuer_icon": "simple-icons:coursera",
+    "issue_date": "2025-03-01",
+    "expiry_date": "2028-03-01",
+    "credential_id": "ABC-123",
+    "credential_url": "https://example.com/verify/ABC-123",
+    "image": "/storage/uploads/certificate.png",
+    "description": "Advanced cloud architecture training.",
+    "is_expired": false
+  }
+]
+```
+
+---
+
+## AI Assistant
+
+Public endpoints for interacting with the AI portfolio assistant.
+
+### Get Assistant Info
+**GET** `/assistant`
+
+Get assistant configuration and suggested questions. Returns 200 even if assistant is disabled (just with `enabled: false`).
+
+**Success Response (200):**
+```json
+{
+  "enabled": true,
+  "greeting": "Hello! I'm an AI assistant trained on the portfolio data. Ask me anything about the background, skills, projects, and experience.",
+  "suggested_questions": [
+    "What are your main skills?",
+    "Tell me about your latest project",
+    "What's your work experience?"
+  ]
+}
+```
+
+**Note:** The `extra_knowledge` field is NEVER returned to public clients.
+
+---
+
+### Chat with Assistant
+**POST** `/chat`
+
+Send a message and receive an AI-generated response based on portfolio data.
+
+**Rate Limit:** 10 requests per minute per IP, plus daily global limit (default 300)
+
+**Request Body:**
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "What are your main skills?"
+    },
+    {
+      "role": "assistant",
+      "content": "I have strong skills in PHP, Laravel, Vue.js..."
+    },
+    {
+      "role": "user",
+      "content": "Tell me more about your backend experience"
+    }
+  ]
+}
+```
+
+**Validation Rules:**
+- `messages`: required, array, 1-10 items
+- `messages.*.role`: required, either "user" or "assistant"
+- `messages.*.content`: required, string, 1-500 characters (trimmed, control characters removed)
+- Last message must have `role: "user"`
+
+**Success Response (200):**
+```json
+{
+  "reply": "I have extensive experience with Laravel, having worked with it for 5+ years. I specialize in building scalable APIs and full-stack web applications..."
+}
+```
+
+**Error Response (422):**
+Validation error with details about which fields failed.
+
+```json
+{
+  "message": "The messages.0.content field is required.",
+  "errors": {
+    "messages.0.content": ["The content field is required."]
+  }
+}
+```
+
+**Error Response (429):**
+Returned when rate limit is exceeded.
+
+```json
+{
+  "message": "Too many questions. Please try again in a minute."
+}
+```
+
+**Error Response (503):**
+Returned when assistant is disabled or not configured.
+
+```json
+{
+  "message": "The AI assistant is currently unavailable. Please use the contact form to get in touch."
+}
+```
+
+Or when API key is missing:
+
+```json
+{
+  "message": "The AI assistant is not configured. Please contact the site administrator."
+}
+```
+
+**Implementation Notes:**
+- Email addresses are automatically stripped from AI replies before returning
+- System prompt is built from database (profile, projects, skills, experiences, and assistant settings)
+- Email addresses NEVER appear in system prompt sent to Anthropic
+- Daily token usage is tracked in `chat_usage` table
+- No message content is logged; only token counts are recorded
+
+---
+
 ## Admin Endpoints
 
 All admin endpoints require authentication. Include the Bearer token in the Authorization header:
@@ -383,15 +636,17 @@ Returns array of all social links.
 **Request Body:**
 ```json
 {
-  "name": "Twitter",
-  "url": "https://twitter.com/username",
+  "name": "Telegram",
+  "icon": "simple-icons:telegram",
+  "url": "https://t.me/username",
   "sort_order": 3
 }
 ```
 
 **Validation Rules:**
 - `name`: required, string, max 50
-- `url`: required, valid URL, max 255
+- `url`: required, string, max 255; must start with `http://`, `https://`, `mailto:`, or `tel:`
+- `icon`: nullable, string, max 80; when provided, must match `collection:icon-name` using lowercase letters, digits, and hyphens
 - `sort_order`: nullable, integer, min 0
 
 **Success Response (201):**
@@ -405,7 +660,10 @@ Returns created social link object.
 **Authentication:** Required
 
 **Request Body:**
-Same as create, all fields required.
+Same fields as create. `name` and `url` are required; `sort_order` and `icon` are optional.
+
+`icon` is nullable and may be omitted to keep the current icon. Use an empty
+string or `null` to clear it.
 
 **Success Response (200):**
 Returns updated social link object.
@@ -499,6 +757,51 @@ Returns updated project object.
 No content.
 
 **Note:** Associated image is automatically deleted from storage.
+
+---
+
+### Certifications Management
+
+All certification management endpoints require authentication.
+
+#### List All Certifications
+**GET** `/admin/certifications`
+
+Returns all certifications, including drafts, ordered by `sort_order` and then newest issue date.
+
+#### Create Certification
+**POST** `/admin/certifications`
+
+Required fields: `title` (string, max 150), `issuer` (string, max 120), and `issue_date` (date, not in the future).
+
+Optional fields: `issuer_icon` (Iconify name matching `namespace:name`, max 80), `expiry_date` (date on or after issue date), `credential_id` (max 100), `credential_url` (HTTPS only, max 255), `image` (relative `/storage/...` path only, max 255), `description` (max 500), `is_published` (boolean, defaults to true), and `sort_order` (integer, min 0, defaults to 0). Empty optional strings are stored as null.
+
+**Success Response (201):** Returns the created certification object.
+
+#### Update Certification
+**PUT/PATCH** `/admin/certifications/{id}`
+
+Uses the same fields and validation as create. Replaced upload images are removed from the public disk only when they are under `/storage/uploads/` and are not referenced by another record.
+
+#### Delete Certification
+**DELETE** `/admin/certifications/{id}`
+
+Returns 204 No Content. An unused image under `/storage/uploads/` is removed from the public disk.
+
+#### Reorder Certifications
+**PATCH** `/admin/certifications/reorder`
+
+Request body:
+```json
+{
+  "certifications": [
+    { "id": 1, "sort_order": 0 },
+    { "id": 2, "sort_order": 1 }
+  ]
+}
+```
+
+Updates the supplied certification sort orders atomically and returns all certifications in display order.
 
 ---
 
@@ -672,6 +975,226 @@ No content.
 
 ---
 
+### AI Assistant Management
+
+#### Get Assistant Settings
+**GET** `/admin/assistant`
+
+**Authentication:** Required
+
+Get current assistant configuration including the extra knowledge field.
+
+**Success Response (200):**
+```json
+{
+  "id": 1,
+  "enabled": true,
+  "greeting": "Hello! I'm an AI assistant...",
+  "extra_knowledge": "I charge $100/hour for consulting. I'm available for full-time roles.",
+  "suggested_questions": [
+    "What are your main skills?",
+    "Tell me about your latest project"
+  ],
+  "created_at": "2024-01-01T00:00:00.000000Z",
+  "updated_at": "2024-01-01T00:00:00.000000Z"
+}
+```
+
+---
+
+#### Update Assistant Settings
+**PUT** `/admin/assistant`
+
+**Authentication:** Required
+
+Update assistant configuration.
+
+**Request Body:**
+```json
+{
+  "enabled": true,
+  "greeting": "Hello! Ask me anything about my work.",
+  "extra_knowledge": "I charge $100/hour. I'm available for full-time roles starting next month.",
+  "suggested_questions": [
+    "What are your main skills?",
+    "Tell me about your latest project",
+    "What's your work experience?"
+  ]
+}
+```
+
+**Validation Rules:**
+- `enabled`: required, boolean
+- `greeting`: required, string, max 200
+- `extra_knowledge`: nullable, string, max 3000
+- `suggested_questions`: nullable, array, max 6 items
+- `suggested_questions.*`: string, max 100
+
+**Success Response (200):**
+Returns updated settings object.
+
+**Error Response (422):**
+Validation error with field details.
+
+---
+
+#### Get Assistant Usage Statistics
+**GET** `/admin/assistant/usage`
+
+**Authentication:** Required
+
+Get token usage statistics across different time periods.
+
+**Success Response (200):**
+```json
+{
+  "today": {
+    "requests": 12,
+    "input_tokens": 1250,
+    "output_tokens": 890
+  },
+  "last_7_days": {
+    "requests": 85,
+    "input_tokens": 9340,
+    "output_tokens": 6120
+  },
+  "last_30_days": {
+    "requests": 320,
+    "input_tokens": 38500,
+    "output_tokens": 24680
+  }
+}
+```
+
+**Note:** Token counts help you track Anthropic API costs. Refer to the Anthropic Console for actual billing.
+
+---
+
+---
+
+### CV Management
+
+Admin endpoints for managing the CV/resume file.
+
+#### Get CV Info
+**GET** `/admin/cv`
+
+**Authentication:** Required
+
+Get current CV information or `{ exists: false }` if none uploaded.
+
+**Success Response (200):**
+```json
+{
+  "exists": true,
+  "original_name": "my-resume",
+  "size": 245760,
+  "is_public": true,
+  "download_count": 42,
+  "updated_at": "2024-01-15T10:30:00.000000Z"
+}
+```
+
+Or when no CV exists:
+```json
+{
+  "exists": false
+}
+```
+
+---
+
+#### Upload or Replace CV
+**POST** `/admin/cv`
+
+**Authentication:** Required
+
+Upload a new CV or replace the existing one. When replacing, the old file is deleted and download counter is reset to 0.
+
+**Request:** multipart/form-data
+
+**Form Fields:**
+- `file`: PDF file (required)
+
+**Validation Rules:**
+- `file`: required, file, mimes:pdf, mimetypes:application/pdf, max:5120 (5MB)
+- PDF header bytes must be `%PDF-`
+
+**Success Response (200):**
+Returns updated CV info (same structure as GET).
+
+**Error Response (422):**
+```json
+{
+  "message": "The file must be a valid PDF.",
+  "errors": {
+    "file": ["The file is not a valid PDF document."]
+  }
+}
+```
+
+**Implementation Notes:**
+- File is stored on private disk with a random UUID filename
+- Original uploaded filename is sanitized and stored for display only
+- Operation is transactional: if anything fails, the new file is deleted and old file is kept
+- Old file is deleted only after successful database update
+
+---
+
+#### Toggle CV Visibility
+**PATCH** `/admin/cv`
+
+**Authentication:** Required
+
+Toggle whether the CV is visible on the public site.
+
+**Request Body:**
+```json
+{
+  "is_public": false
+}
+```
+
+**Validation Rules:**
+- `is_public`: required, boolean
+
+**Success Response (200):**
+Returns updated CV info (same structure as GET).
+
+---
+
+#### Delete CV
+**DELETE** `/admin/cv`
+
+**Authentication:** Required
+
+Delete the CV file and database record.
+
+**Success Response (204):**
+No content.
+
+**Error Response (404):**
+Returned when no CV exists.
+
+---
+
+#### Preview CV
+**GET** `/admin/cv/file`
+
+**Authentication:** Required
+
+Stream the CV file for preview in the admin panel. File is displayed inline (not downloaded).
+
+**Success Response (200):**
+Returns PDF file with headers:
+- `Content-Type: application/pdf`
+- `Content-Disposition: inline; filename="{original_name}.pdf"`
+
+**Error Response (404):**
+Returned when CV not found or file missing.
+
+---
+
 ### Image Upload
 
 #### Upload Image
@@ -683,14 +1206,18 @@ No content.
 
 **Form Fields:**
 - `image`: Image file (jpg, jpeg, png, webp, max 2MB)
+- `optimize_avatar`: Optional boolean. Send `1` for a profile avatar to retain the original and create square 480px/800px WebP variants.
 
 **Success Response (201):**
 ```json
 {
-  "url": "/storage/uploads/1234567890_abc123.png",
-  "path": "uploads/1234567890_abc123.png"
+  "url": "http://localhost:8000/storage/uploads/1234567890_abc123.png",
+  "path": "/storage/uploads/1234567890_abc123.png",
+  "optimized_path": "/storage/uploads/1234567890_abc123.optimized.webp"
 }
 ```
+
+`optimized_path` is `null` when avatar optimization was not requested.
 
 **Error Response (422):**
 ```json
@@ -755,6 +1282,7 @@ Returned when rate limit is exceeded.
 
 - **Login endpoint:** 5 requests per minute
 - **Contact form:** 5 requests per minute
+- **Chat endpoint:** 10 requests per minute per IP, plus daily global limit (default 300)
 - **All other endpoints:** No rate limiting
 
 ---

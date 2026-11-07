@@ -90,6 +90,18 @@ const router = createRouter({
           meta: { title: 'Experience' },
         },
         {
+          path: 'certifications',
+          name: 'admin-certifications',
+          component: () => import('@/views/admin/CertificationsView.vue'),
+          meta: { title: 'Achievements' },
+        },
+        {
+          path: 'cv',
+          name: 'admin-cv',
+          component: () => import('@/views/admin/CvView.vue'),
+          meta: { title: 'CV' },
+        },
+        {
           path: 'socials',
           name: 'admin-socials',
           component: () => import('@/views/admin/SocialsView.vue'),
@@ -100,6 +112,12 @@ const router = createRouter({
           name: 'admin-messages',
           component: () => import('@/views/admin/MessagesView.vue'),
           meta: { title: 'Messages' },
+        },
+        {
+          path: 'assistant',
+          name: 'admin-assistant',
+          component: () => import('@/views/admin/AssistantView.vue'),
+          meta: { title: 'AI Assistant' },
         },
       ],
     },

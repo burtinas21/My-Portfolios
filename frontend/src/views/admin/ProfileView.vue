@@ -7,12 +7,16 @@
 -->
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { getAdminProfile, updateAdminProfile } from '@/api/admin/profile.js'
 import { useToast } from '@/composables/useToast.js'
+import { useDocumentTitle } from '@/composables/useDocumentTitle.js'
 import { usePortfolioStore } from '@/stores/portfolio.js'
+import { assetUrl } from '@/utils/url.js'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ImageUpload from '@/components/admin/ImageUpload.vue'
+
+useDocumentTitle('Profile')
 
 const toast = useToast()
 const portfolioStore = usePortfolioStore()
@@ -28,6 +32,8 @@ const form = reactive({
   avatar: null,
 })
 
+const avatarPreviewUrl = computed(() => assetUrl(form.avatar))
+
 const errors = reactive({
   name: '', initials: '', headline: '', bio: '', email: '',
   location: '', status: '', avatar: '',
@@ -41,6 +47,7 @@ onMounted(async () => {
   try {
     const data = await getAdminProfile()
     Object.assign(form, {
+      
       name: data.name || '',
       initials: data.initials || '',
       headline: data.headline || '',
@@ -61,6 +68,54 @@ function clearErrors() {
   Object.keys(errors).forEach((k) => (errors[k] = ''))
 }
 
+async function handleAvatarChange(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  // Client-side validation
+  const allowed = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowed.includes(file.type)) {
+    toast.error('Only JPG, PNG, or WebP images are allowed.')
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    toast.error('Image must be smaller than 2MB.')
+    return
+  }
+
+  // Upload the image
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+    formData.append('optimize_avatar', '1')
+    
+    const response = await fetch(import.meta.env.VITE_API_URL + '/admin/uploads', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+      },
+      body: formData,
+    })
+
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.message || `Upload failed with status ${response.status}.`)
+    }
+
+    form.avatar = data.path // Save the relative path
+    if (data.optimized_path) {
+      toast.success('Avatar uploaded and optimized successfully.')
+    } else {
+      toast.error('The avatar uploaded, but its optimized version could not be generated.')
+    }
+  } catch (err) {
+    toast.error(err.message || 'Upload failed.')
+  }
+
+  // Reset input so the same file can be selected again
+  event.target.value = ''
+}
+
 async function handleSave() {
   clearErrors()
   isSaving.value = true
@@ -69,7 +124,7 @@ async function handleSave() {
     await updateAdminProfile({ ...form })
     toast.success('Profile updated successfully.')
     // Refresh the public portfolio store so the visitor sees the latest profile data
-    portfolioStore.refresh()
+    await portfolioStore.refresh()
   } catch (err) {
     if (err.fieldErrors) {
       Object.entries(err.fieldErrors).forEach(([field, msgs]) => {
@@ -89,7 +144,7 @@ function field(id, label, type = 'text', placeholder = '') {
 </script>
 
 <template>
-  <div class="max-w-2xl space-y-6">
+  <div class="max-w-3xl space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -116,8 +171,58 @@ function field(id, label, type = 'text', placeholder = '') {
       <!-- Avatar -->
       <div class="bg-surface border border-line rounded-card p-6 shadow-card space-y-4">
         <h3 class="text-sm font-semibold text-fg">Avatar</h3>
-        <ImageUpload v-model="form.avatar" label="Profile Photo" />
-        <p v-if="errors.avatar" class="text-xs text-danger">{{ errors.avatar }}</p>
+        
+        <div class="flex items-start gap-6">
+          <!-- Avatar preview (160px circle or rounded square) -->
+          <div class="shrink-0">
+            <div class="relative w-40 h-40 rounded-card overflow-hidden bg-surface-2 border-2 border-line">
+              <img
+                v-if="avatarPreviewUrl"
+                :src="avatarPreviewUrl"
+                :alt="form.name || 'Avatar preview'"
+                class="w-full h-full object-cover"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-muted">
+                <svg class="w-16 h-16 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-col gap-2">
+              <label class="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  class="hidden"
+                  @change="handleAvatarChange"
+                />
+                <span class="inline-flex items-center justify-center w-full px-3 py-2 rounded-control text-xs font-medium border border-line bg-surface text-fg hover:bg-surface-2 transition-colors">
+                  Change
+                </span>
+              </label>
+              <BaseButton
+                v-if="form.avatar"
+                variant="ghost"
+                size="sm"
+                class="text-danger hover:text-danger text-xs w-full"
+                @click="form.avatar = null"
+              >
+                Remove
+              </BaseButton>
+            </div>
+          </div>
+
+          <!-- Upload instructions -->
+          <div class="flex-1 space-y-2 pt-2">
+            <p class="text-sm text-fg font-medium">Profile Photo</p>
+            <p class="text-xs text-muted leading-relaxed">
+              Upload a square image (recommended 400×400px or larger).
+              Accepted formats: JPG, PNG, WebP. Maximum file size: 2MB.
+            </p>
+            <p v-if="errors.avatar" class="text-xs text-danger">{{ errors.avatar }}</p>
+          </div>
+        </div>
       </div>
 
       <!-- Basic Info -->

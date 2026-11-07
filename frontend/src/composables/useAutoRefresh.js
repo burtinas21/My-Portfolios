@@ -9,9 +9,8 @@
  *   2. window "focus"               — fires when the browser window
  *      regains focus (user alt-tabs back from another app).
  *
- * On either event, it calls portfolioStore.refreshIfStale(), which only
- * hits the network if the cached data is older than the configured max
- * age.  No timer-based polling is used.
+ * These events trigger a silent refresh; the server's ETag makes unchanged
+ * data a cheap 304 response. No timer-based polling is used.
  *
  * Listeners are cleaned up automatically when the host component unmounts.
  *
@@ -28,35 +27,38 @@ import { usePortfolioStore } from '@/stores/portfolio.js'
 
 export function useAutoRefresh() {
   const portfolioStore = usePortfolioStore()
+  let updateChannel = null
 
-  /**
-   * Fires when the browser tab becomes visible again.
-   * Only triggers a network request if the data is stale.
-   */
   function onVisibilityChange() {
     if (document.visibilityState === 'visible') {
-      portfolioStore.refreshIfStale()
+      portfolioStore.refresh({ broadcast: false })
     }
   }
 
-  /**
-   * Fires when the browser window gains focus (e.g. alt-tab back).
-   * Also triggers a staleness check — this covers the case where
-   * visibilitychange doesn't fire (e.g. same-window focus shift).
-   */
   function onWindowFocus() {
-    portfolioStore.refreshIfStale()
+    portfolioStore.refresh({ broadcast: false })
   }
 
-  // Register event listeners when the host component mounts
+  function onPortfolioUpdate(event) {
+    if (event.data?.type === 'refresh') {
+      portfolioStore.refresh({ broadcast: false })
+    }
+  }
+
   onMounted(() => {
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener('focus', onWindowFocus)
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      updateChannel = new BroadcastChannel('portfolio-updated')
+      updateChannel.addEventListener('message', onPortfolioUpdate)
+    }
   })
 
-  // Clean up listeners when the host component unmounts to prevent leaks
   onUnmounted(() => {
     document.removeEventListener('visibilitychange', onVisibilityChange)
     window.removeEventListener('focus', onWindowFocus)
+    updateChannel?.removeEventListener('message', onPortfolioUpdate)
+    updateChannel?.close()
   })
 }

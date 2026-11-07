@@ -1,252 +1,187 @@
 /**
  * stores/portfolio.js — Portfolio Data Store
  * ───────────────────────────────────────────
- * The central store for ALL public portfolio data: profile, projects,
- * skills, experiences, and social links.
- *
- * Design decisions:
- * 1. LOAD ONCE: fetchAll() loads everything in parallel, then caches it.
- *    It won't fetch again if data is already loaded (use refresh() to force).
- * 2. NO DUPLICATE FETCHES: A loading flag prevents two components from
- *    triggering the same fetch at the same time.
- * 3. SEPARATION: each resource has its own loading/error state so
- *    one failing API call doesn't break the whole page.
- * 4. REFRESH: after admin changes, call refresh() to re-fetch everything
- *    so the public site shows the latest data.
- *
- * Data flow: Component → this store → src/api/*.js → http.js → Laravel
- *
- * Used by: all public page sections (Hero, Work, Skills, Experience, Contact)
+ * The central store for public portfolio data, loaded in one request through
+ * GET /site and refreshed after admin changes.
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { getProfile } from '@/api/profile.js'
-import { getSocials } from '@/api/socials.js'
-import { getProjects, getProject } from '@/api/projects.js'
-import { getSkills } from '@/api/skills.js'
-import { getExperiences } from '@/api/experiences.js'
+import { loadIcons } from '@iconify/vue'
+import { getSite } from '@/api/site.js'
+import { getProject } from '@/api/projects.js'
+import { getSocialIcon } from '@/utils/socialIcons.js'
+
+const UPDATE_CHANNEL = 'portfolio-updated'
+const preloadedIcons = new Set()
+
+function preloadPayloadIcons(payload) {
+  const iconNames = [
+    'lucide:arrow-up',
+    'lucide:lock',
+    'simple-icons:gmail',
+    'lucide:globe',
+    'lucide:award',
+    ...(payload.socials || []).map(getSocialIcon),
+    ...Object.values(payload.skills || {}).flatMap((category) =>
+      category.map((skill) => skill.icon).filter(Boolean),
+    ),
+    ...(payload.certifications || []).map((certification) =>
+      certification.issuer_icon || 'lucide:award',
+    ),
+  ]
+  const newIcons = [...new Set(iconNames)].filter((icon) => !preloadedIcons.has(icon))
+
+  if (!newIcons.length) return
+
+  newIcons.forEach((icon) => preloadedIcons.add(icon))
+  loadIcons(newIcons)
+}
 
 export const usePortfolioStore = defineStore('portfolio', () => {
-  /* ── State for each resource ───────────────────────────────── */
-
-  /* Profile */
   const profile = ref(null)
   const profileLoading = ref(false)
   const profileError = ref(null)
 
-  /* Social links */
   const socials = ref([])
   const socialsLoading = ref(false)
   const socialsError = ref(null)
 
-  /* Projects (published only for public site) */
   const projects = ref([])
   const projectsLoading = ref(false)
   const projectsError = ref(null)
 
-  /* Skills (grouped object: { "Frontend": [...], "Backend": [...] }) */
   const skills = ref({})
   const skillsLoading = ref(false)
   const skillsError = ref(null)
 
-  /* Experiences */
   const experiences = ref([])
   const experiencesLoading = ref(false)
   const experiencesError = ref(null)
 
-  /* Master loading flag: true while the initial fetchAll is running */
+  const certifications = ref([])
+  const certificationsLoading = ref(true)
+  const certificationsError = ref(null)
+
+  const cv = ref({ available: false, size: null, updated_at: null })
+  const assistant = ref({ enabled: false, greeting: '', suggested_questions: [] })
+  const assistantError = ref(null)
   const initialLoading = ref(false)
-  /* Tracks whether fetchAll has completed at least once */
   const loaded = ref(false)
-
-  /* Timestamp (ms) of the last successful data fetch — used by refreshIfStale() */
   const lastFetchedAt = ref(null)
+  let pendingRequest = null
 
-  /*
-   * Private flag (not reactive — no component needs to read it):
-   * prevents overlapping silent refreshes from piling up.
-   */
-  let _isRefreshing = false
-
-  /* ── Computed values ───────────────────────────────────────── */
-
-  /**
-   * Unique project tags (e.g. ["Web App", "Mobile", "CLI"]).
-   * Used by WorkSection to build filter chips.
-   */
   const projectTags = computed(() => {
-    const tags = new Set(projects.value.map((p) => p.tag).filter(Boolean))
+    const tags = new Set(projects.value.map((project) => project.tag).filter(Boolean))
     return Array.from(tags).sort()
   })
 
-  /**
-   * Category names from the skills object (e.g. ["Backend", "Frontend"]).
-   */
   const skillCategories = computed(() => Object.keys(skills.value))
 
-  /* ── Actions ───────────────────────────────────────────────── */
-
-  /**
-   * Load ALL portfolio data in parallel.
-   * Skips if data is already loaded (call refresh() to force).
-   * Prevents duplicate concurrent fetches.
-   */
-  async function fetchAll() {
-    // Don't fetch if already loaded or currently loading
-    if (loaded.value || initialLoading.value) return
-
-    initialLoading.value = true
-
-    // Fetch all resources in parallel using Promise.allSettled
-    // (allSettled never rejects — each promise resolves with its status)
-    await Promise.allSettled([
-      fetchProfile(),
-      fetchSocials(),
-      fetchProjects(),
-      fetchSkills(),
-      fetchExperiences(),
-    ])
-
-    loaded.value = true
-    lastFetchedAt.value = Date.now()
-    initialLoading.value = false
-  }
-
-  /**
-   * Force re-fetch everything (e.g. after an admin update).
-   */
-  async function refresh() {
-    loaded.value = false
-    await fetchAll()
-  }
-
-  /**
-   * Silent, conditional refresh — called by the useAutoRefresh composable
-   * (and can be called from anywhere that needs a non-disruptive update).
-   *
-   * Only re-fetches if the data is older than maxAgeMs (default 5 min)
-   * AND no other silent refresh is already in progress.
-   *
-   * Key behaviour:
-   * - Does NOT reset loading/error flags → no skeletons, no flicker.
-   * - Keeps showing the current data until the new response arrives.
-   * - If any individual request fails, the old data for that resource
-   *   is kept and NO error is surfaced to the user.
-   *
-   * @param {number} maxAgeMs — maximum acceptable data age in milliseconds.
-   */
-  async function refreshIfStale(maxAgeMs = 5 * 60 * 1000) {
-    // Guard: skip if a silent refresh is already running
-    if (_isRefreshing) return
-
-    // Guard: skip if data was fetched recently enough
-    if (lastFetchedAt.value && (Date.now() - lastFetchedAt.value) < maxAgeMs) return
-
-    // Guard: skip if the initial load hasn't finished yet (fetchAll is in progress)
-    if (!loaded.value) return
-
-    _isRefreshing = true
-
-    try {
-      // Fetch every resource in parallel without touching any loading/error refs
-      const [profileRes, socialsRes, projectsRes, skillsRes, experiencesRes] =
-        await Promise.allSettled([
-          getProfile(),
-          getSocials(),
-          getProjects(),
-          getSkills(),
-          getExperiences(),
-        ])
-
-      // Only swap in data for requests that succeeded —
-      // failed ones silently keep the previous value.
-      if (profileRes.status === 'fulfilled')     profile.value     = profileRes.value
-      if (socialsRes.status === 'fulfilled')     socials.value     = socialsRes.value
-      if (projectsRes.status === 'fulfilled')    projects.value    = projectsRes.value
-      if (skillsRes.status === 'fulfilled')      skills.value      = skillsRes.value
-      if (experiencesRes.status === 'fulfilled') experiences.value = experiencesRes.value
-
-      lastFetchedAt.value = Date.now()
-    } finally {
-      _isRefreshing = false
-    }
-  }
-
-  /* ── Individual fetch helpers ──────────────────────────────── */
-  /* Each one sets its own loading/error state independently */
-
-  async function fetchProfile() {
-    profileLoading.value = true
+  function applyPayload(payload) {
+    preloadPayloadIcons(payload)
+    profile.value = payload.profile
+    socials.value = payload.socials || []
+    projects.value = payload.projects || []
+    skills.value = payload.skills || {}
+    experiences.value = payload.experiences || []
+    certifications.value = payload.certifications || []
+    cv.value = payload.cv || { available: false, size: null, updated_at: null }
+    assistant.value = payload.assistant || { enabled: false, greeting: '', suggested_questions: [] }
     profileError.value = null
-    try {
-      profile.value = await getProfile()
-    } catch (err) {
-      profileError.value = err.message || 'Failed to load profile'
-    } finally {
-      profileLoading.value = false
-    }
-  }
-
-  async function fetchSocials() {
-    socialsLoading.value = true
     socialsError.value = null
-    try {
-      socials.value = await getSocials()
-    } catch (err) {
-      socialsError.value = err.message || 'Failed to load social links'
-    } finally {
-      socialsLoading.value = false
-    }
-  }
-
-  async function fetchProjects() {
-    projectsLoading.value = true
     projectsError.value = null
-    try {
-      projects.value = await getProjects()
-    } catch (err) {
-      projectsError.value = err.message || 'Failed to load projects'
-    } finally {
-      projectsLoading.value = false
-    }
-  }
-
-  async function fetchSkills() {
-    skillsLoading.value = true
     skillsError.value = null
-    try {
-      skills.value = await getSkills()
-    } catch (err) {
-      skillsError.value = err.message || 'Failed to load skills'
-    } finally {
-      skillsLoading.value = false
-    }
-  }
-
-  async function fetchExperiences() {
-    experiencesLoading.value = true
     experiencesError.value = null
-    try {
-      experiences.value = await getExperiences()
-    } catch (err) {
-      experiencesError.value = err.message || 'Failed to load experiences'
-    } finally {
-      experiencesLoading.value = false
-    }
+    certificationsError.value = null
+    assistantError.value = null
   }
 
-  /**
-   * Fetch a single project by ID (for the detail view/modal).
-   * @param {number|string} id
-   * @returns {Promise<object>}
-   */
+  function setLoading(value) {
+    profileLoading.value = value
+    socialsLoading.value = value
+    projectsLoading.value = value
+    skillsLoading.value = value
+    experiencesLoading.value = value
+    certificationsLoading.value = value
+  }
+
+  function setErrors(message) {
+    profileError.value = message
+    socialsError.value = message
+    projectsError.value = message
+    skillsError.value = message
+    experiencesError.value = message
+    certificationsError.value = message
+    assistantError.value = message
+  }
+
+  async function loadSite({ silent = false } = {}) {
+    if (pendingRequest) return pendingRequest
+
+    if (!silent) {
+      initialLoading.value = true
+      setLoading(true)
+      setErrors(null)
+    }
+
+    pendingRequest = (async () => {
+      try {
+        const payload = await getSite()
+        if (!payload) throw new Error('The site data response was empty.')
+        applyPayload(payload)
+        loaded.value = true
+        lastFetchedAt.value = Date.now()
+        return true
+      } catch (error) {
+        if (silent && loaded.value) {
+          console.error('Unable to refresh portfolio data:', error)
+        } else {
+          setErrors(error.message || 'Failed to load portfolio data.')
+        }
+        return false
+      } finally {
+        if (!silent) {
+          initialLoading.value = false
+          setLoading(false)
+        }
+        pendingRequest = null
+      }
+    })()
+
+    return pendingRequest
+  }
+
+  async function fetchAll() {
+    if (loaded.value) return true
+    return loadSite()
+  }
+
+  function announceUpdate() {
+    if (typeof BroadcastChannel === 'undefined') return
+
+    const channel = new BroadcastChannel(UPDATE_CHANNEL)
+    channel.postMessage({ type: 'refresh' })
+    channel.close()
+  }
+
+  async function refresh({ broadcast = true } = {}) {
+    const succeeded = await loadSite({ silent: loaded.value })
+    if (broadcast) announceUpdate()
+    return succeeded
+  }
+
+  async function refreshIfStale(maxAgeMs = 5 * 60 * 1000) {
+    if (lastFetchedAt.value && Date.now() - lastFetchedAt.value < maxAgeMs) return
+    if (!loaded.value) return fetchAll()
+    return loadSite({ silent: true })
+  }
+
   async function fetchProject(id) {
-    return await getProject(id)
+    return getProject(id)
   }
 
   return {
-    /* State */
     profile,
     profileLoading,
     profileError,
@@ -262,15 +197,17 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     experiences,
     experiencesLoading,
     experiencesError,
+    certifications,
+    certificationsLoading,
+    certificationsError,
+    cv,
+    assistant,
+    assistantError,
     initialLoading,
     loaded,
     lastFetchedAt,
-
-    /* Computed */
     projectTags,
     skillCategories,
-
-    /* Actions */
     fetchAll,
     refresh,
     refreshIfStale,

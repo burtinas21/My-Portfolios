@@ -3,17 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\SocialLink;
+use App\Services\SitePayload;
 
 class SocialLinkController extends Controller
 {
     /**
      * Display a listing of social links.
      */
-    public function index()
+    public function index(SitePayload $sitePayload)
     {
-        return response()->json(
-            SocialLink::orderBy('sort_order')->get()
-        );
+        return response()->json($sitePayload->payload()['socials']);
     }
 }

@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-3-haiku-20240307'),
+        'timeout' => 20, // seconds
+        'daily_limit' => env('CHAT_DAILY_LIMIT', 300),
+    ],
+
 ];

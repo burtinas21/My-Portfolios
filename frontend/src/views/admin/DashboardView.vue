@@ -8,16 +8,21 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useDocumentTitle } from '@/composables/useDocumentTitle.js'
 import { getAdminProjects } from '@/api/admin/projects.js'
 import { getAdminSkills } from '@/api/admin/skills.js'
 import { getAdminExperiences } from '@/api/admin/experiences.js'
 import { getAdminMessages } from '@/api/admin/messages.js'
 import { getAdminSocials } from '@/api/admin/socials.js'
+import { getAdminCertifications } from '@/api/admin/certifications.js'
+
+useDocumentTitle('Dashboard')
 
 const stats = ref([
   { label: 'Projects', value: '—', to: { name: 'admin-projects' }, icon: `<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>`, color: 'text-violet-500 bg-violet-500/10' },
   { label: 'Skills', value: '—', to: { name: 'admin-skills' }, icon: `<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`, color: 'text-blue-500 bg-blue-500/10' },
   { label: 'Experiences', value: '—', to: { name: 'admin-experience' }, icon: `<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>`, color: 'text-emerald-500 bg-emerald-500/10' },
+  { label: 'Achievements', value: '—', to: { name: 'admin-certifications' }, icon: `<path d="M12 15l-3.5 2 1-4-3-2.5 4-.3L12 6l1.5 4.2 4 .3-3 2.5 1 4z"/><circle cx="12" cy="12" r="9"/>`, color: 'text-cyan-500 bg-cyan-500/10' },
   { label: 'Unread Messages', value: '—', to: { name: 'admin-messages' }, icon: `<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>`, color: 'text-amber-500 bg-amber-500/10' },
   { label: 'Social Links', value: '—', to: { name: 'admin-socials' }, icon: `<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>`, color: 'text-pink-500 bg-pink-500/10' },
 ])
@@ -30,10 +35,11 @@ const quickLinks = [
 ]
 
 onMounted(async () => {
-  const [projects, skills, experiences, messages, socials] = await Promise.allSettled([
+  const [projects, skills, experiences, certifications, messages, socials] = await Promise.allSettled([
     getAdminProjects(),
     getAdminSkills(),
     getAdminExperiences(),
+    getAdminCertifications(),
     getAdminMessages(),
     getAdminSocials(),
   ])
@@ -41,12 +47,13 @@ onMounted(async () => {
   if (projects.status === 'fulfilled') stats.value[0].value = projects.value.length
   if (skills.status === 'fulfilled') stats.value[1].value = skills.value.length
   if (experiences.status === 'fulfilled') stats.value[2].value = experiences.value.length
+  if (certifications.status === 'fulfilled') stats.value[3].value = certifications.value.length
   if (messages.status === 'fulfilled') {
     const unread = messages.value.filter((m) => !m.read_at).length
-    stats.value[3].value = unread
-    stats.value[3].label = unread === 1 ? 'Unread Message' : 'Unread Messages'
+    stats.value[4].value = unread
+    stats.value[4].label = unread === 1 ? 'Unread Message' : 'Unread Messages'
   }
-  if (socials.status === 'fulfilled') stats.value[4].value = socials.value.length
+  if (socials.status === 'fulfilled') stats.value[5].value = socials.value.length
 })
 </script>
 
@@ -59,7 +66,7 @@ onMounted(async () => {
     </div>
 
     <!-- Stats grid -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       <RouterLink
         v-for="stat in stats"
         :key="stat.label"

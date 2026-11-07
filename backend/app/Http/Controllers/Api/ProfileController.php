@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Profile;
+use App\Services\SitePayload;
 
 class ProfileController extends Controller
 {
-    public function show()
+    public function show(SitePayload $sitePayload)
     {
-        return response()->json(Profile::first());
+        return response()->json($sitePayload->payload()['profile']);
     }
 }

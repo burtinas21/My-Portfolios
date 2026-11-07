@@ -18,6 +18,7 @@ import { usePortfolioStore } from '@/stores/portfolio.js'
 import { useAuthStore } from '@/stores/auth.js'
 import AppContainer from '@/components/ui/AppContainer.vue'
 import SocialLinks from '@/components/ui/SocialLinks.vue'
+import { getVisibleNavigationSections } from '@/utils/navigationSections.js'
 
 /** Control admin lock icon visibility for visitors (true = always show, false = only when logged in) */
 const SHOW_ADMIN_LINK_TO_VISITORS = true
@@ -28,13 +29,8 @@ const authStore = useAuthStore()
 const currentYear = computed(() => new Date().getFullYear())
 
 /** Navigation links (same sections as navbar) */
-const navLinks = [
-  { label: 'About', href: '#hero' },
-  { label: 'Work', href: '#work' },
-  { label: 'Skills', href: '#skills' },
-  { label: 'Experience', href: '#experience' },
-  { label: 'Contact', href: '#contact' },
-]
+const navLinks = computed(() => getVisibleNavigationSections(portfolioStore.certifications)
+  .map((section) => ({ label: section.label, href: `#${section.id}` })))
 
 /**
  * Role line: extract the first part of the headline before "|"

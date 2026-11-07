@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Button Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: system-ui;
+            background: #0B1220;
+            color: white;
+            min-height: 100vh;
+        }
+        .info {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>Chat Button Test</h1>
+        <p>If the chat widget is working correctly, you should see a purple circular button in the bottom-right corner of this page.</p>
+        <p>The button should have:</p>
+        <ul>
+            <li>Purple background (#5B3FFF)</li>
+            <li>White chat bubble icon</li>
+            <li>Fixed position in bottom-right</li>
+            <li>Z-index of 9999 (on top of everything)</li>
+        </ul>
+    </div>
+
+    <!-- Test button with exact same styles as the chat widget -->
+    <button
+        style="
+            position: fixed !important;
+            bottom: 1rem !important;
+            right: 1rem !important;
+            z-index: 9999 !important;
+            background: #5B3FFF !important;
+            color: white !important;
+            border: none !important;
+            cursor: pointer !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+            width: 56px !important;
+            height: 56px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        "
+        onclick="alert('Chat button clicked! It works!')"
+    >
+        <!-- Chat bubble icon -->
+        <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3.01 1.01 4.32L2.5 22l5.68-1.51C9.99 21.64 11.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.41 0-2.73-.36-3.88-.98l-.28-.15-2.89.77.77-2.89-.15-.28C4.36 14.73 4 13.41 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z" />
+        </svg>
+    </button>
+</body>
+</html>

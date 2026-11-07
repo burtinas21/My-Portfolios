@@ -121,6 +121,14 @@
 /* These apply globally to every page. We use the design tokens
    so the entire page automatically adapts to light/dark mode. */
 
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-variable.woff2") format("woff2");
+}
+
 body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   background-color: var(--color-bg);
@@ -204,20 +212,29 @@ section[id] {
 /* Used by SkeletonBlock.vue for loading placeholders */
 
 @keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  to { transform: translateX(100%); }
 }
 
 .skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-control);
+}
+
+.skeleton::after {
+  position: absolute;
+  inset: 0;
   background: linear-gradient(
     90deg,
-    var(--color-surface-2) 25%,
+    transparent,
     var(--color-surface) 50%,
-    var(--color-surface-2) 75%
+    transparent
   );
-  background-size: 200% 100%;
+  content: "";
+  transform: translateX(-100%);
   animation: shimmer 1.5s infinite ease-in-out;
-  border-radius: var(--radius-control);
+  pointer-events: none;
 }
 
 /* ── Scroll-reveal animation ─────────────────────────────────── */
@@ -267,7 +284,7 @@ section[id] {
     transform: none;
   }
 
-  .skeleton {
+  .skeleton::after {
     animation: none;
   }
 }
@@ -288,11 +305,11 @@ section[id] {
 /* ── Toast transitions ───────────────────────────────────────── */
 
 .toast-enter-active {
-  transition: all 0.3s ease-out;
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
 .toast-leave-active {
-  transition: all 0.2s ease-in;
+  transition: opacity 0.2s ease-in, transform 0.2s ease-in;
 }
 
 .toast-enter-from {
@@ -308,11 +325,11 @@ section[id] {
 /* ── Modal transitions ───────────────────────────────────────── */
 
 .modal-enter-active {
-  transition: all 0.3s ease-out;
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
 .modal-leave-active {
-  transition: all 0.2s ease-in;
+  transition: opacity 0.2s ease-in, transform 0.2s ease-in;
 }
 
 .modal-enter-from {
@@ -347,19 +364,10 @@ section[id] {
   height: 3px;
   background: var(--color-accent);
   z-index: 100;
-  transition: width 0.1s linear;
-}
-
-/* ── Skill bar animation ─────────────────────────────────────── */
-/* The bar starts at 0% width and grows to its target when visible */
-
-.skill-bar-fill {
-  width: 0;
-  transition: width 1s ease-out;
-}
-
-.skill-bar-fill.filled {
-  /* width is set inline via :style binding */
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.1s linear;
 }
 
 /* ── Container utility ───────────────────────────────────────── */

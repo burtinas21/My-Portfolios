@@ -11,10 +11,13 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getAdminExperiences, createAdminExperience, updateAdminExperience, deleteAdminExperience } from '@/api/admin/experiences.js'
 import { useToast } from '@/composables/useToast.js'
+import { useDocumentTitle } from '@/composables/useDocumentTitle.js'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue'
+
+useDocumentTitle('Experience')
 
 const toast = useToast()
 const portfolioStore = usePortfolioStore()
@@ -105,7 +108,7 @@ async function handleSave() {
     }
     modalOpen.value = false
     // Refresh the public portfolio store so the experience change is visible
-    portfolioStore.refresh()
+    await portfolioStore.refresh()
   } catch (err) {
     if (err.fieldErrors) {
       Object.entries(err.fieldErrors).forEach(([f, msgs]) => {
@@ -128,7 +131,7 @@ async function handleDelete() {
     toast.success('Experience deleted.')
     confirmOpen.value = false
     // Refresh the public portfolio store so deleted experience disappears
-    portfolioStore.refresh()
+    await portfolioStore.refresh()
   } catch (err) {
     toast.error(err.message || 'Delete failed.')
   } finally {

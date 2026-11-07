@@ -11,15 +11,19 @@ return new class extends Migration
      */
   public function up(): void
 {
-    Schema::table('social_links', function (Blueprint $table) {
-        $table->string('icon', 80)->nullable()->after('name');
-    });
+    if (! Schema::hasColumn('social_links', 'icon')) {
+        Schema::table('social_links', function (Blueprint $table) {
+            $table->string('icon', 80)->nullable()->after('name');
+        });
+    }
 }
 
 public function down(): void
 {
-    Schema::table('social_links', function (Blueprint $table) {
-        $table->dropColumn('icon');
-    });
+    if (Schema::hasColumn('social_links', 'icon')) {
+        Schema::table('social_links', function (Blueprint $table) {
+            $table->dropColumn('icon');
+        });
+    }
 }
 };

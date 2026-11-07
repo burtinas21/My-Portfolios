@@ -27,4 +27,34 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vue',
+              test: /[\\/]node_modules[\\/](?:vue|@vue)[\\/]/,
+              priority: 40,
+            },
+            {
+              name: 'vue-router',
+              test: /[\\/]node_modules[\\/]vue-router[\\/]/,
+              priority: 30,
+            },
+            {
+              name: 'pinia',
+              test: /[\\/]node_modules[\\/]pinia[\\/]/,
+              priority: 20,
+            },
+            {
+              name: 'iconify',
+              test: /[\\/]node_modules[\\/]@iconify[\\/]/,
+              priority: 10,
+            },
+          ],
+        },
+      },
+    },
+  },
 })

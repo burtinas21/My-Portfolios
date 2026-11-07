@@ -9,13 +9,19 @@
 -->
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { Icon } from '@iconify/vue'
 import { getAdminSocials, createAdminSocial, updateAdminSocial, deleteAdminSocial } from '@/api/admin/socials.js'
+import { getSocialIcon, suggestSocialIcon } from '@/utils/socialIcons.js'
 import { useToast } from '@/composables/useToast.js'
+import { useDocumentTitle } from '@/composables/useDocumentTitle.js'
 import { usePortfolioStore } from '@/stores/portfolio.js'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import SkillIcon from '@/components/ui/SkillIcon.vue'
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue'
+
+useDocumentTitle('Social Links')
 
 const toast = useToast()
 const portfolioStore = usePortfolioStore()
@@ -30,8 +36,13 @@ const isEditing = ref(false)
 const isSaving = ref(false)
 const editingId = ref(null)
 
-const form = reactive({ name: '', url: '', sort_order: 0 })
-const errors = reactive({ name: '', url: '', sort_order: '' })
+const form = reactive({ name: '', url: '', icon: '', sort_order: 0 })
+const errors = reactive({ name: '', url: '', icon: '', sort_order: '' })
+const suggestedIcon = computed(() => suggestSocialIcon(form))
+const previewIcon = computed(() => form.icon.trim() || suggestedIcon.value || '')
+const showIconSuggestion = computed(() => (
+  suggestedIcon.value && form.icon.trim() !== suggestedIcon.value
+))
 
 // Confirm delete
 const confirmOpen = ref(false)
@@ -57,6 +68,7 @@ function openCreate() {
   editingId.value = null
   form.name = ''
   form.url = ''
+  form.icon = ''
   form.sort_order = (socials.value.length + 1)
   Object.keys(errors).forEach((k) => (errors[k] = ''))
   modalOpen.value = true
@@ -67,6 +79,7 @@ function openEdit(social) {
   editingId.value = social.id
   form.name = social.name
   form.url = social.url
+  form.icon = social.icon || ''
   form.sort_order = social.sort_order
   Object.keys(errors).forEach((k) => (errors[k] = ''))
   modalOpen.value = true
@@ -82,7 +95,12 @@ async function handleSave() {
   isSaving.value = true
 
   try {
-    const payload = { name: form.name, url: form.url, sort_order: Number(form.sort_order) }
+    const payload = {
+      name: form.name.trim(),
+      url: form.url.trim(),
+      icon: form.icon.trim() || null,
+      sort_order: Number(form.sort_order),
+    }
 
     if (isEditing.value) {
       const updated = await updateAdminSocial(editingId.value, payload)
@@ -96,7 +114,7 @@ async function handleSave() {
     }
     modalOpen.value = false
     // Refresh the public portfolio store so social link changes appear
-    portfolioStore.refresh()
+    await portfolioStore.refresh()
   } catch (err) {
     if (err.fieldErrors) {
       Object.entries(err.fieldErrors).forEach(([f, msgs]) => {
@@ -119,7 +137,7 @@ async function handleDelete() {
     toast.success('Social link deleted.')
     confirmOpen.value = false
     // Refresh the public portfolio store so deleted link disappears
-    portfolioStore.refresh()
+    await portfolioStore.refresh()
   } catch (err) {
     toast.error(err.message || 'Delete failed.')
   } finally {
@@ -174,7 +192,12 @@ async function handleDelete() {
             class="border-b border-line last:border-0 hover:bg-surface-2 transition-colors"
           >
             <td class="px-5 py-3.5 text-muted text-xs">{{ social.sort_order }}</td>
-            <td class="px-5 py-3.5 font-medium text-fg">{{ social.name }}</td>
+            <td class="px-5 py-3.5 font-medium text-fg">
+              <span class="inline-flex items-center gap-2">
+                <Icon :icon="getSocialIcon(social)" width="18" height="18" aria-hidden="true" />
+                {{ social.name }}
+              </span>
+            </td>
             <td class="px-5 py-3.5 text-muted hidden sm:table-cell max-w-xs">
               <a :href="social.url" target="_blank" rel="noopener" class="hover:text-accent transition-colors truncate block">{{ social.url }}</a>
             </td>
@@ -203,10 +226,39 @@ async function handleDelete() {
           <p v-if="errors.name" class="text-xs text-danger">{{ errors.name }}</p>
         </div>
 
+        <!-- Icon -->
+        <div class="space-y-1.5">
+          <label for="social-icon" class="block text-sm font-medium text-fg">Icon</label>
+          <div class="flex items-center gap-3">
+            <SkillIcon :icon="previewIcon" :name="form.name || '?'" :size="28" />
+            <input
+              id="social-icon"
+              v-model="form.icon"
+              type="text"
+              maxlength="80"
+              placeholder="simple-icons:github"
+              class="input-field min-w-0 flex-1"
+              :class="errors.icon ? 'border-danger' : ''"
+            />
+          </div>
+          <p v-if="errors.icon" class="text-xs text-danger">{{ errors.icon }}</p>
+          <button
+            v-if="showIconSuggestion"
+            type="button"
+            class="suggestion-btn"
+            @click="form.icon = suggestedIcon"
+          >
+            Use {{ suggestedIcon }}
+          </button>
+          <p v-else class="text-xs text-muted">
+            Detected from the platform name or URL when available. Enter an icon name to override.
+          </p>
+        </div>
+
         <!-- URL -->
         <div class="space-y-1.5">
           <label for="social-url" class="block text-sm font-medium text-fg">URL <span class="text-danger">*</span></label>
-          <input id="social-url" v-model="form.url" type="url" maxlength="255" placeholder="https://github.com/username" class="input-field w-full" :class="errors.url ? 'border-danger' : ''" />
+          <input id="social-url" v-model="form.url" type="text" maxlength="255" placeholder="https://github.com/you or mailto:you@example.com" class="input-field w-full" :class="errors.url ? 'border-danger' : ''" />
           <p v-if="errors.url" class="text-xs text-danger">{{ errors.url }}</p>
         </div>
 
@@ -243,5 +295,14 @@ async function handleDelete() {
   @apply px-3.5 py-2.5 rounded-control border border-line bg-surface text-sm text-fg
          placeholder:text-muted transition-colors outline-none
          focus:ring-2 focus:ring-accent focus:border-accent;
+}
+
+.suggestion-btn {
+  @apply inline-flex items-center gap-1 text-xs font-medium
+         px-2.5 py-1 rounded-full
+         bg-accent-soft text-accent
+         border border-accent/30
+         hover:bg-accent hover:text-on-accent
+         transition-colors cursor-pointer;
 }
 </style>

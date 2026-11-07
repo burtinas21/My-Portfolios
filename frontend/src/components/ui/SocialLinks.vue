@@ -1,19 +1,7 @@
 <!--
   SocialLinks.vue — Reusable Social Link Renderer
   ────────────────────────────────────────────────
-  Renders social links from the portfolio store in two visual styles:
-
-  variant="icons"  (default) — Small circular icon-only buttons, used in the
-                    hero section and footer. Same layout/sizing as the old inline SVGs.
-
-  variant="buttons" — Rectangular icon + label buttons matching the reference design.
-                    Used in the Contact section. Includes a filled "Contact me" email
-                    button with privacy protection (mailto built in click handler only).
-
-  Props:
-    variant  — "icons" | "buttons" (default: "icons")
-
-  Used by: HeroSection.vue, TheFooter.vue, ContactSection.vue
+  Renders all valid social links from the portfolio store as icons or buttons.
 -->
 
 <script setup>
@@ -24,169 +12,174 @@ import { useToast } from '@/composables/useToast.js'
 import { getSocialIcon, isEmailLink } from '@/utils/socialIcons.js'
 
 const props = defineProps({
-  /**
-   * Visual variant:
-   * - "icons":   compact icon-only row (hero / footer)
-   * - "buttons": rectangular icon + label row (contact section)
-   */
   variant: {
     type: String,
     default: 'icons',
-    validator: (v) => ['icons', 'buttons'].includes(v),
+    validator: (value) => ['icons', 'buttons'].includes(value),
   },
 })
 
 const portfolioStore = usePortfolioStore()
 const toast = useToast()
 
-/* ── Computed: the email address (for the "Contact me" button) ── */
+const contactEmail = computed(() => portfolioStore.profile?.email || null)
 
-/**
- * Resolve the contact email address:
- * 1. portfolioStore.profile.email (preferred)
- * 2. Fall back to a mailto: entry in the socials list
- * Returns null if neither exists → the email button is hidden.
- */
-const contactEmail = computed(() => {
-  // Primary source: profile.email
-  const profileEmail = portfolioStore.profile?.email
-  if (profileEmail) return profileEmail
+const sortedSocials = computed(() => [...portfolioStore.socials]
+  .filter((social) => isValidUrl(social.url))
+  .sort((a, b) => Number(a.sort_order) - Number(b.sort_order) || Number(a.id) - Number(b.id)))
 
-  // Fallback: find a mailto: social link and extract the address
-  const emailSocial = portfolioStore.socials.find((s) => isEmailLink(s))
-  if (emailSocial) {
-    const url = (emailSocial.url || '').trim()
-    if (url.startsWith('mailto:')) return url.replace('mailto:', '').split('?')[0]
-    // Plain email address in URL field
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(url)) return url
+const visibleSocials = computed(() => sortedSocials.value.filter((social) => (
+  props.variant !== 'buttons' || !isEmailLink(social)
+)))
+
+function isValidUrl(url) {
+  if (typeof url !== 'string') return false
+
+  const trimmed = url.trim()
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed)
+      return ['http:', 'https:'].includes(parsed.protocol) && Boolean(parsed.hostname)
+    } catch {
+      return false
+    }
   }
 
-  return null
-})
+  if (/^mailto:/i.test(trimmed)) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+(?:\?.*)?$/i.test(trimmed.slice(trimmed.indexOf(':') + 1))
+  }
 
-/* ── Computed: non-email social links (for both variants) ─────── */
-
-/**
- * Filter out email entries from the socials list so they don't
- * appear alongside the dedicated "Contact me" button.
- * Also skip links with missing or invalid URLs.
- */
-const filteredSocials = computed(() => {
-  return portfolioStore.socials.filter((s) => {
-    // Skip email entries (they're handled by the Contact me button)
-    if (isEmailLink(s)) return false
-    // Skip entries with no URL
-    const url = (s.url || '').trim()
-    if (!url) return false
-    return true
-  })
-})
-
-/* ── Email button click handler (privacy-first) ──────────────── */
-
-/**
- * Handle the "Contact me" button click.
- * Builds the mailto: URI only inside this handler — the email address
- * never appears in the rendered HTML, protecting it from scrapers.
- *
- * Strategy:
- * 1. Open mailto: link via window.location.href
- * 2. Show "Opening your email app" toast
- * 3. After 1.5s, if focus hasn't left the page (mail app didn't open),
- *    copy the email to clipboard as a fallback with "Email copied" toast
- */
-function handleEmailClick() {
-  const email = contactEmail.value
-  if (!email) return
-
-  toast.success('Opening your email app')
-
-  // Build the mailto URI only at the moment of interaction
-  window.location.href = `mailto:${email}`
-
-  // Clipboard fallback: if the mail client didn't open (user stays on page),
-  // copy the email address after a short delay
-  setTimeout(async () => {
-    try {
-      await navigator.clipboard.writeText(email)
-      toast.success('Email copied')
-    } catch {
-      // Clipboard API not available — fail silently
-    }
-  }, 1500)
+  return /^tel:\+?[0-9().\-\s]+(?:;.*)?$/i.test(trimmed)
 }
 
-/**
- * Check if a URL is valid for navigation (starts with http/https/mailto/tel).
- * Prevents crashes from malformed URLs.
- *
- * @param {string} url
- * @returns {boolean}
- */
-function isValidUrl(url) {
-  const trimmed = (url || '').trim()
-  return /^(https?:\/\/|mailto:|tel:)/i.test(trimmed)
+function socialName(social) {
+  return social.name?.trim().toLowerCase() === 'twitter' ? 'X' : social.name
+}
+
+function isPrivateLink(url) {
+  return /^(mailto:|tel:)/i.test(url.trim())
+}
+
+function openPrivateLink(social) {
+  const url = social.url.trim()
+
+  if (isEmailLink(social)) {
+    const email = url.slice(url.indexOf(':') + 1).split('?')[0]
+    let appOpened = false
+    const markAppOpened = () => {
+      appOpened = true
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        markAppOpened()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('blur', markAppOpened, { once: true })
+    toast.success('Opening your email app')
+    window.location.href = `mailto:${email}`
+    window.setTimeout(async () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('blur', markAppOpened)
+      if (appOpened) return
+
+      try {
+        await navigator.clipboard.writeText(email)
+        toast.success('Email copied')
+      } catch {
+        const fallbackArea = document.createElement('textarea')
+        fallbackArea.value = email
+        fallbackArea.setAttribute('readonly', '')
+        fallbackArea.style.position = 'fixed'
+        fallbackArea.style.opacity = '0'
+        document.body.append(fallbackArea)
+        fallbackArea.select()
+        const copied = document.execCommand('copy')
+        fallbackArea.remove()
+        if (copied) {
+          toast.success('Email copied')
+        } else {
+          toast.error('Could not open your email app or copy the address.')
+        }
+      }
+    }, 1500)
+    return
+  }
+
+  toast.success('Opening your phone app')
+  window.location.href = url
+}
+
+function openContactEmail() {
+  if (!contactEmail.value) return
+
+  toast.success('Opening your email app')
+  window.location.href = `mailto:${contactEmail.value}`
 }
 </script>
 
 <template>
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- VARIANT: "icons" — compact icon-only row (hero / footer)  -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
   <div v-if="variant === 'icons'" class="social-icons-row">
-    <template v-for="social in filteredSocials" :key="social.id">
+    <template v-for="social in visibleSocials" :key="social.id">
+      <button
+        v-if="isPrivateLink(social.url)"
+        type="button"
+        class="social-icon-control"
+        :title="socialName(social)"
+        :aria-label="socialName(social)"
+        @click="openPrivateLink(social)"
+      >
+        <Icon :icon="getSocialIcon(social)" width="18" height="18" aria-hidden="true" />
+      </button>
       <a
-        v-if="isValidUrl(social.url)"
-        :href="social.url"
+        v-else
+        :href="social.url.trim()"
         target="_blank"
         rel="noopener noreferrer"
-        :title="social.name"
-        :aria-label="`${social.name} (opens in a new tab)`"
-        class="social-icon-link"
+        class="social-icon-control"
+        :title="socialName(social)"
+        :aria-label="`${socialName(social)} (opens in a new tab)`"
       >
-        <Icon
-          :icon="getSocialIcon(social)"
-          width="16"
-          height="16"
-          aria-hidden="true"
-        />
+        <Icon :icon="getSocialIcon(social)" width="18" height="18" aria-hidden="true" />
       </a>
     </template>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- VARIANT: "buttons" — rectangular label buttons (contact)  -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div v-else class="social-buttons-row stagger">
-    <!-- "Contact me" email button — FILLED, always first -->
+  <div v-else class="social-buttons-row">
     <button
       v-if="contactEmail"
       type="button"
-      class="social-btn social-btn--filled reveal"
-      @click="handleEmailClick"
+      class="social-button social-button--filled"
       aria-label="Contact me via email"
+      @click="openContactEmail"
     >
-      <Icon icon="lucide:mail" width="18" height="18" aria-hidden="true" />
+      <Icon icon="simple-icons:gmail" width="18" height="18" aria-hidden="true" />
       <span>Contact me</span>
     </button>
 
-    <!-- Other social links — OUTLINED, in sort order -->
-    <template v-for="social in filteredSocials" :key="social.id">
+    <template v-for="social in visibleSocials" :key="social.id">
+      <button
+        v-if="isPrivateLink(social.url)"
+        type="button"
+        class="social-button social-button--outlined"
+        :aria-label="socialName(social)"
+        @click="openPrivateLink(social)"
+      >
+        <Icon :icon="getSocialIcon(social)" width="18" height="18" aria-hidden="true" />
+        <span>{{ socialName(social) }}</span>
+      </button>
       <a
-        v-if="isValidUrl(social.url)"
-        :href="social.url"
+        v-else
+        :href="social.url.trim()"
         target="_blank"
         rel="noopener noreferrer"
-        :aria-label="`${social.name} (opens in a new tab)`"
-        class="social-btn social-btn--outlined reveal"
+        class="social-button social-button--outlined"
+        :aria-label="`${socialName(social)} (opens in a new tab)`"
       >
-        <Icon
-          :icon="getSocialIcon(social)"
-          width="18"
-          height="18"
-          aria-hidden="true"
-        />
-        <span>{{ social.name }}</span>
+        <Icon :icon="getSocialIcon(social)" width="18" height="18" aria-hidden="true" />
+        <span>{{ socialName(social) }}</span>
       </a>
     </template>
   </div>
@@ -195,71 +188,29 @@ function isValidUrl(url) {
 <style scoped>
 @reference "@/assets/main.css";
 
-/* ── Icons variant (hero / footer) ────────────────────────────── */
-/* Matches the original inline icon row: 36×36px, rounded, subtle border on hover */
-
 .social-icons-row {
-  @apply flex items-center gap-2;
+  @apply flex flex-wrap items-center gap-2;
 }
 
-.social-icon-link {
-  @apply w-9 h-9 rounded-control
-         flex items-center justify-center
-         text-muted border border-transparent
-         hover-icon focus-ring;
+.social-icon-control {
+  @apply inline-flex h-11 w-11 items-center justify-center rounded-control
+         border border-transparent text-muted hover-icon focus-ring;
 }
-
-/* ── Buttons variant (contact section) ────────────────────────── */
-/* Rectangular buttons: icon + uppercase monospace label */
 
 .social-buttons-row {
   @apply flex flex-wrap gap-3 md:gap-4;
 }
 
-/* Shared button base */
-.social-btn {
-  @apply inline-flex items-center gap-3
-         px-5 py-3
-         rounded-sm
-         text-xs sm:text-sm
-         uppercase tracking-wider font-medium
-         cursor-pointer select-none
-         focus-ring;
-  font-family: var(--font-mono);
-  min-height: 44px; /* touch target */
-  border: 1px solid transparent;
-  text-decoration: none;
-  transition: opacity var(--transition-hover),
-              border-color var(--transition-hover);
+.social-button {
+  @apply inline-flex min-h-11 items-center gap-3 rounded-control border
+         px-5 py-3 text-sm font-medium focus-ring transition-colors;
 }
 
-/* Filled variant (Contact me button): bg-fg text-bg */
-.social-btn--filled {
-  @apply bg-fg text-bg border-fg;
+.social-button--filled {
+  @apply border-accent bg-accent text-on-accent hover-button-primary;
 }
 
-@media (hover: hover) {
-  .social-btn--filled:hover {
-    opacity: 0.85;
-  }
-}
-
-.social-btn--filled:active {
-  opacity: 0.75;
-}
-
-/* Outlined variant (other socials): border-line text-fg */
-.social-btn--outlined {
-  @apply bg-transparent text-fg border-line;
-}
-
-@media (hover: hover) {
-  .social-btn--outlined:hover {
-    @apply border-fg;
-  }
-}
-
-.social-btn--outlined:active {
-  opacity: 0.8;
+.social-button--outlined {
+  @apply border-line bg-transparent text-fg hover-button-outlined;
 }
 </style>
