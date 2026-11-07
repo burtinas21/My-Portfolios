@@ -8,13 +8,14 @@ export const PUBLIC_NAVIGATION_SECTIONS = [
   { id: 'hero', label: 'About' },
   { id: 'work', label: 'Work' },
   { id: 'skills', label: 'Skills' },
-  { id: 'experience', label: 'Experience' },
+  { id: 'experience', label: 'Experience', requiresExperience: true },
   { id: 'certifications', label: 'Achievements', requiresCertifications: true },
   { id: 'contact', label: 'Contact' },
 ]
 
-export function getVisibleNavigationSections(certifications = []) {
+export function getVisibleNavigationSections(certifications = [], hasExperiences = true) {
   return PUBLIC_NAVIGATION_SECTIONS.filter(
-    (section) => !section.requiresCertifications || certifications.length > 0,
+    (section) => (!section.requiresCertifications || certifications.length > 0)
+      && (!section.requiresExperience || hasExperiences),
   )
 }

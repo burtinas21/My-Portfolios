@@ -24,6 +24,125 @@ export function formatDate(dateString, options = {}) {
   return new Date(dateString).toLocaleDateString('en-US', { ...defaults, ...options })
 }
 
+const MONTH_NAMES = Array.from({ length: 12 }, (_, index) => {
+  const date = new Date(Date.UTC(2024, index, 1))
+  return [
+    new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' })
+      .format(date)
+      .toLowerCase(),
+    new Intl.DateTimeFormat('en-US', { month: 'long', timeZone: 'UTC' })
+      .format(date)
+      .toLowerCase(),
+  ]
+})
+
+/**
+ * Parse a month and year entered as "Apr 2024", "April 2024", "04/2024",
+ * or "2024-04".
+ *
+ * @param {string} value
+ * @returns {string|null} — Normalized YYYY-MM value
+ */
+export function parseMonthInput(value) {
+  if (typeof value !== 'string' || !value.trim()) return null
+
+  const input = value.trim()
+  let year
+  let month
+
+  const isoMatch = input.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/)
+  const numericMatch = input.match(/^(\d{1,2})[/-](\d{4})$/)
+  const namedMatch = input.match(/^([a-z]+)\.?\s+(\d{4})$/i)
+
+  if (isoMatch) {
+    year = Number(isoMatch[1])
+    month = Number(isoMatch[2])
+  } else if (numericMatch) {
+    month = Number(numericMatch[1])
+    year = Number(numericMatch[2])
+  } else if (namedMatch) {
+    year = Number(namedMatch[2])
+    const monthName = namedMatch[1].toLowerCase()
+    month = MONTH_NAMES.findIndex((names, index) => (
+      names.includes(monthName) || (index === 8 && monthName === 'sept')
+    )) + 1
+  } else {
+    return null
+  }
+
+  if (!Number.isInteger(year) || year < 1 || !Number.isInteger(month) || month < 1 || month > 12) {
+    return null
+  }
+
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`
+}
+
+/**
+ * Format a date or month value as a short month and year for text inputs.
+ *
+ * @param {string|null} value
+ * @returns {string}
+ */
+export function formatMonthInput(value) {
+  const month = parseMonthInput(value || '')
+  if (!month) return ''
+
+  const [year, monthNumber] = month.split('-').map(Number)
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, monthNumber - 1, 1)))
+}
+
+/**
+ * Format a work experience date range and inclusive month duration.
+ *
+ * @param {string|null} start — ISO date for the first month
+ * @param {string|null} end — ISO date for the final month
+ * @param {boolean} isCurrent — Whether the role continues through this month
+ * @returns {string} — e.g. "Apr 2026 – Present · 7 mo"
+ */
+export function formatPeriod(start, end, isCurrent = false) {
+  if (!start) return ''
+
+  const toMonthDate = (value) => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}/.test(value)) return null
+    const [year, month] = value.slice(0, 7).split('-').map(Number)
+    if (month < 1 || month > 12) return null
+    return new Date(Date.UTC(year, month - 1, 1))
+  }
+
+  const startDate = toMonthDate(start)
+  if (!startDate) return ''
+
+  const endDate = isCurrent
+    ? new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth(), 1))
+    : toMonthDate(end)
+  const monthFormatter = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+  const startLabel = monthFormatter.format(startDate)
+
+  if (!endDate) return startLabel
+
+  const totalMonths = (endDate.getUTCFullYear() - startDate.getUTCFullYear()) * 12
+    + endDate.getUTCMonth() - startDate.getUTCMonth() + 1
+  if (totalMonths < 1) return startLabel
+
+  const durationYears = Math.floor(totalMonths / 12)
+  const durationMonths = totalMonths % 12
+  const duration = [
+    durationYears ? `${durationYears} yr` : '',
+    durationMonths ? `${durationMonths} mo` : '',
+  ].filter(Boolean).join(' ')
+  const endLabel = isCurrent ? 'Present' : monthFormatter.format(endDate)
+
+  return `${startLabel} – ${endLabel}${duration ? ` · ${duration}` : ''}`
+}
+
 /**
  * Format a date string into a relative time description.
  *

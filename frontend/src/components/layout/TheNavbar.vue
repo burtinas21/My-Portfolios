@@ -33,8 +33,12 @@ const isMobileMenuOpen = ref(false)
 const scrollProgress = ref(0)
 
 // Navigation items definition
-const navItems = computed(() => getVisibleNavigationSections(portfolioStore.certifications)
-  .map((section) => ({ label: section.label, href: `#${section.id}` })))
+const navItems = computed(() => getVisibleNavigationSections(
+  portfolioStore.certifications,
+  portfolioStore.experiences.length > 0
+    || portfolioStore.experiencesLoading
+    || Boolean(portfolioStore.experiencesError),
+).map((section) => ({ label: section.label, href: `#${section.id}` })))
 
 /**
  * Handle scroll events:
@@ -60,7 +64,7 @@ function handleScroll() {
   }
 }
 
-watch(() => portfolioStore.certifications.length, handleScroll)
+watch(navItems, handleScroll)
 
 /**
  * Close mobile menu when an anchor link is clicked

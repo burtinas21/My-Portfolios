@@ -182,7 +182,7 @@ INSTRUCTIONS;
      */
     private static function buildExperienceSection(): string
     {
-        $experiences = Experience::orderBy('sort_order')->get();
+        $experiences = Experience::displayOrder()->get();
 
         if ($experiences->isEmpty()) {
             return "EXPERIENCE:\nNo experience listed.\n\n";
@@ -191,13 +191,40 @@ INSTRUCTIONS;
         $section = "EXPERIENCE:\n";
 
         foreach ($experiences as $exp) {
-            $section .= "- {$exp->role} at {$exp->organization}";
+            $summary = "- {$exp->role} at {$exp->organization}";
 
-            if ($exp->period) {
-                $section .= " ({$exp->period})";
+            if ($exp->start_date) {
+                $end = $exp->is_current
+                    ? 'Present'
+                    : ($exp->end_date?->format('M Y') ?? '');
+                $dateRange = $exp->start_date->format('M Y');
+                if ($end !== '') {
+                    $dateRange .= " – {$end}";
+                }
+                $summary .= " ({$dateRange})";
+            } elseif ($exp->period) {
+                $summary .= " ({$exp->period})";
             }
 
-            $section .= "\n";
+            foreach ([
+                'Type' => $exp->employment_type,
+                'Mode' => $exp->work_mode,
+                'Location' => $exp->location,
+            ] as $label => $value) {
+                if ($value) {
+                    $summary .= " | {$label}: {$value}";
+                }
+            }
+
+            if ($exp->highlights) {
+                $summary .= ' | Highlights: '.implode('; ', $exp->highlights);
+            }
+
+            if ($exp->technologies) {
+                $summary .= ' | Technologies: '.implode(', ', $exp->technologies);
+            }
+
+            $section .= "{$summary}\n";
 
             if ($exp->description) {
                 $section .= "  {$exp->description}\n";

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AssistantSetting;
 use App\Models\Certification;
 use App\Models\ChatUsage;
+use App\Models\Experience;
 use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -219,6 +220,50 @@ class AssistantTest extends TestCase
                 && ! str_contains($systemPrompt, 'example.com/verify')
                 && ! str_contains($systemPrompt, 'Unpublished Certification')
                 && ! str_contains($systemPrompt, 'DRAFT-CREDENTIAL-456');
+        });
+    }
+
+    public function test_system_prompt_includes_compact_experience_details(): void
+    {
+        config(['services.anthropic.key' => 'test-key']);
+        AssistantSetting::create(['enabled' => true]);
+        Experience::create([
+            'role' => 'Software Engineer',
+            'organization' => 'Example Studio',
+            'period' => null,
+            'description' => 'Delivered production software.',
+            'start_date' => '2022-01-01',
+            'end_date' => '2023-03-01',
+            'is_current' => false,
+            'employment_type' => 'Contract',
+            'work_mode' => 'Hybrid',
+            'location' => 'Addis Ababa',
+            'highlights' => ['Built a service', 'Reduced latency'],
+            'technologies' => ['Laravel', 'Vue'],
+        ]);
+
+        Http::fake([
+            'api.anthropic.com/*' => Http::response([
+                'content' => [['text' => 'Test response']],
+                'usage' => ['input_tokens' => 100, 'output_tokens' => 50],
+            ]),
+        ]);
+
+        $this->postJson('/api/chat', [
+            'messages' => [['role' => 'user', 'content' => 'Tell me about this role.']],
+        ]);
+
+        Http::assertSent(function ($request) {
+            $body = json_decode($request->body(), true);
+            $systemPrompt = $body['system'] ?? '';
+
+            return str_contains($systemPrompt, 'Jan 2022 – Mar 2023')
+                && str_contains($systemPrompt, 'Type: Contract')
+                && str_contains($systemPrompt, 'Mode: Hybrid')
+                && str_contains($systemPrompt, 'Location: Addis Ababa')
+                && str_contains($systemPrompt, 'Highlights: Built a service; Reduced latency')
+                && str_contains($systemPrompt, 'Technologies: Laravel, Vue')
+                && str_contains($systemPrompt, 'Delivered production software.');
         });
     }
 

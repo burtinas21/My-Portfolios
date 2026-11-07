@@ -29,8 +29,12 @@ const authStore = useAuthStore()
 const currentYear = computed(() => new Date().getFullYear())
 
 /** Navigation links (same sections as navbar) */
-const navLinks = computed(() => getVisibleNavigationSections(portfolioStore.certifications)
-  .map((section) => ({ label: section.label, href: `#${section.id}` })))
+const navLinks = computed(() => getVisibleNavigationSections(
+  portfolioStore.certifications,
+  portfolioStore.experiences.length > 0
+    || portfolioStore.experiencesLoading
+    || Boolean(portfolioStore.experiencesError),
+).map((section) => ({ label: section.label, href: `#${section.id}` })))
 
 /**
  * Role line: extract the first part of the headline before "|"
