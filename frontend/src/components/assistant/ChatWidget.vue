@@ -21,6 +21,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useChatStore } from '@/stores/chat.js'
 import { usePortfolioStore } from '@/stores/portfolio.js'
+import { assetUrl } from '@/utils/url.js'
 
 const chatStore = useChatStore()
 const portfolioStore = usePortfolioStore()
@@ -69,16 +70,9 @@ const initials = computed(() => profile.value?.initials || '?')
 
 /**
  * Profile avatar URL
+ * Uses the shared assetUrl utility to handle local and absolute image URLs.
  */
-const avatar = computed(() => {
-  if (profile.value?.avatar?.startsWith('http')) {
-    return profile.value.avatar
-  }
-  if (profile.value?.avatar) {
-    return import.meta.env.VITE_API_URL.replace('/api', '') + profile.value.avatar
-  }
-  return null
-})
+const avatar = computed(() => assetUrl(profile.value?.avatar))
 
 /**
  * Character count for input field
