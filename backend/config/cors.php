@@ -24,6 +24,7 @@ return [
     // For development, this allows the Vue.js frontend to call the API
     'allowed_origins' => [
         env('FRONTEND_URL', 'http://localhost:5173'),
+        env('FRONTEND_PRODUCTION_URL', 'https://birtukan-portfolio-rnr1l30lk-burtinas21s-projects.vercel.app')
     ],
 
     'allowed_origins_patterns' => [],
